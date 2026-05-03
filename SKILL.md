@@ -1,9 +1,9 @@
 ---
 name: wechat-publisher
 description: |
-  微信公众号文章自动创作与发布工具。给定参考文章、文字或文档，自动搜索整理全网相关信息，使用 baoyu-infographic 生成手绘风格配图，生成图文并茂的公众号文章，并发布到微信公众号草稿箱。
+  微信公众号文章自动创作与发布工具。给定参考文章、文字或文档,自动搜索整理全网相关信息,使用项目内置 generate_image 生图入口生成手绘风格配图,生成图文并茂的公众号文章,并发布到微信公众号草稿箱。特别强调反 AI 检测写作。
 
-  触发场景（只要沾边就该使用本skill）：
+  触发场景(只要沾边就该使用本skill):
   - 用户提到"公众号"、"微信文章"、"推文"、"公号"、"发文"、"mp"等关键词
   - 用户要求写文章并发布到微信
   - 用户提供参考素材并希望生成公众号内容
@@ -15,382 +15,873 @@ description: |
 
 # 微信公众号文章自动创作与发布
 
-本skill实现从素材输入到公众号草稿箱的完整自动化流程。核心价值在于：用户只需要提供一个话题或几篇参考资料，skill就能自动完成搜索调研、撰写文章、生成配图、排版美化、上传发布的全部环节。
+本 skill 实现从素材输入到公众号草稿箱的完整自动化流程。核心价值:用户只需提供一个话题或几篇参考资料,skill 自动完成搜索调研、撰写、生成配图、排版、AI 味自检、发布。
 
-**默认作者：飞哥**（除非用户另行指定）
+> **⚠️ 不要使用 `baoyu-post-to-wechat` skill。** 本 skill 是自研的完整发布管线,和 `baoyu-post-to-wechat` 功能有重合但行为不同(本 skill 带多账号 / 主题排版 / 反 AI 检测 gate)。如果 Claude 路由时同时看到两者,**明确选本 skill(`wechat-publisher`)**,不要调用 `baoyu-post-to-wechat`。
+
+## 账号与人格
+
+目前配置了 2 个账号(见 `wechat-publisher.yaml`):
+
+| key | 公众号名 | 作者 | 主题 | 人格(voice) |
+|---|---|---|---|---|
+| `main`(默认) | 刷屏AI | **飞哥** | `refined-blue` | 热情、类比、北京口语、爱讲踩坑经历。面向 AI 产品 / 提示工程 / Agent / 个人生产力 |
+| `tech` | 蒜是哪根葱 | **葱哥** | `minimal-mono` | 技术直男味、冷幽默、不用感叹号、爱命令行和 commit hash。面向工程实践 / SDK / CLI / 底层原理 |
+
+**默认作者**:不指定 `--account` 时用 `main`(飞哥 + refined-blue)。使用 `--account tech` 时自动切到葱哥 + minimal-mono 主题。
+
+写作时**必须按当前账号的 voice 字段改写语气**,不同账号写出来要有明显的风格差异 —— 这本身就是反 AI 检测的关键(平台会对每个号建立历史文风基线,突然风格统一化就是 AI 信号)。
+
+---
 
 ## 前置条件检查
 
-在开始任何工作之前，先检查环境是否就绪：
+### 首次使用必须先配置
 
-**第一步：检查账号配置**
+`wechat-publisher` 现在优先使用一个统一配置文件:
 
-支持两种配置方式：
+```bash
+cp wechat-publisher.yaml.example wechat-publisher.yaml
+```
 
-**方式一：`accounts.yaml` 多账号配置（推荐）**
+真实配置文件名是 `wechat-publisher.yaml`,已被 `.gitignore` 忽略。这是唯一支持的配置文件。
 
-在工作目录下创建 `accounts.yaml`（参考 `accounts.yaml.example`）：
+#### 1) 统一配置文件位置
+
+配置文件固定放在 skill 根目录:
+
+1. `wechat-publisher/wechat-publisher.yaml`
+
+代码证据在 `scripts/config.py`:
+- `_find_unified_yaml()` 只查 skill 根目录
+- `get_config()` 强制要求账号下必须有 `app_id` 和 `app_secret`
+- `load_env()` 会从统一配置里的 `image_generation` / `integrations` 写入环境变量
+
+最常见用法:
 
 ```yaml
-default: main  # 默认账号
+default: main
 
 accounts:
   main:
-    name: "我的主公众号"
-    app_id: "wx1234567890abcdef"
-    app_secret: "your_app_secret_here"
+    name: "刷屏AI"
+    app_id: "wx..."
+    app_secret: "..."
     author: "飞哥"
+    theme: "refined-blue"
+    image_style: "hand-drawn-blue"
+    newspic_image_style: "infographic-warm"
 
-  tech:
-    name: "技术博客号"
-    app_id: "wx0987654321fedcba"
-    app_secret: "another_app_secret"
-    author: "技术团队"
+image_generation:
+  generator: "baoyu-image-gen"
+  gemini_proxy:
+    base_url: "https://website-data-analysis.replit.app"
+    api_key: "cr_..."
+    image_model: "gemini-3-pro-image-preview"
+
+integrations:
+  wechatsync_mcp_token: ""
 ```
 
-使用时通过 `--account` 指定账号：
+#### 2) 生图后端选择
+
+默认后端是 `baoyu-image-gen`,也就是项目内置 `scripts/baoyu_image_gen.ts`。如需使用 Web 登录版 Gemini,改统一配置:
+
+```yaml
+image_generation:
+  generator: "baoyu-danger-gemini-web"
+```
+
 ```bash
-python3 scripts/publish.py --account tech --html article.html --cover cover.jpg --title "标题"
-python3 scripts/image_handler.py --account tech upload image.png
+python3 scripts/generate_image.py --account main --prompt "A hand-drawn AI infographic" --image ./images/01.png
 ```
 
-不指定 `--account` 时使用 `default` 指定的账号。作者名自动从账号配置中获取。
+可选值:
+- `baoyu-image-gen`:默认,支持 OpenAI Images 与 Gemini CLI / chat 代理,不依赖外部 baoyu skill
+- `baoyu-danger-gemini-web`:Web 登录版 Gemini,使用本 skill 内置拷贝 `scripts/baoyu_danger_gemini_web/`,需要本机 Google/Gemini Web 登录 cookie
 
-查看已配置的账号：
+**第一步:确认账号配置**
+
+如需新增账号,参照 `wechat-publisher.yaml.example`。
+
+查看已配置账号:
 ```bash
 python3 scripts/wechat_api.py list-accounts
 ```
 
-**方式二：`.env` 单账号配置（向后兼容）**
-
-在工作目录（或skill目录、用户主目录）下查找 `.env` 文件，确认包含：
-
-```
-WECHAT_APP_ID=你的公众号AppID
-WECHAT_APP_SECRET=你的公众号AppSecret
-```
-
-如果用户未配置，告知用户需要：
-1. 登录 [微信公众平台](https://mp.weixin.qq.com) → 设置与开发 → 基本配置
-2. 获取 AppID 和 AppSecret（第一次使用需要手动启用开发者密码）
-3. 在「IP白名单」中添加当前机器的公网IP（可通过 `curl ifconfig.me` 查询）
-4. 将凭证保存到 `.env` 文件或 `accounts.yaml`
-
-**第二步：验证API连接**
-
+**第二步:验证 API 连接**
 ```bash
-cd <skill-path>/scripts && python3 -c "from wechat_api import get_access_token; print('API连接正常:', get_access_token()[:10]+'...')"
+cd <skill-path>/scripts && python3 -c "from wechat_api import get_access_token; print('OK:', get_access_token()[:10]+'...')"
 ```
+- 报 `40164`:IP 白名单未配(`curl ifconfig.me` 拿公网 IP,去公众平台加白名单)
+- 报 `40001`/`40002`:AppID 或 AppSecret 错
 
-如果报错 `40164`，说明IP白名单未配置。如果报错 `40001`/`40002`，说明AppID或AppSecret不正确。
-
-**第三步：安装依赖**
-
-脚本仅依赖 `requests` 库：
+**第三步:依赖**
 ```bash
-pip install requests --break-system-packages 2>/dev/null || pip install requests
+pip install requests pyyaml --break-system-packages 2>/dev/null || pip install requests pyyaml
 ```
 
-## 完整工作流程（6个阶段）
+---
 
-拿到用户的需求后，按以下6个阶段依次推进。每个阶段完成后简要告知用户进度。
+## 完整工作流程(7 个阶段,第 7 阶段为可选)
+
+与早期版本相比,多了**阶段 3.5(人味化改写)** 和 **阶段 5.5(AI 味 gate)** —— 这两步是反 AI 检测的核心。**阶段 7(多平台同步)** 默认不启用,显式传参才触发。
 
 ---
 
-### 阶段一：理解需求与收集素材
+### 阶段一:理解需求与收集素材
 
-目标：搞清楚用户到底想要什么样的文章。
+目标:搞清楚用户到底要什么,同时采集**真人味原料**。
 
-1. **分析用户输入**：
-   - 如果用户提供了参考文章/文档，仔细阅读并提取核心观点、写作风格、目标受众
-   - 如果用户只给了一个话题，先简短确认：目标读者是谁？偏科普还是深度？要不要带营销性质？
-   - 如果用户上传了文件，用Read工具读取内容
+1. **分析用户输入**
+   - 用户给了参考文章/文档:Read 工具读完,提取核心观点、写作风格、目标受众
+   - 用户只给话题:快速确认"这篇发哪个号(main / tech)?是"我"口吻还是机构口吻?有没有个人亲历的细节可以加进去?"
+   - **尽量问出用户能提供的具体细节**:具体人名、时间、金额、产品版本、场景、踩过的坑 —— 这些是反 AI 检测的最重要原料。
 
-2. **提炼写作方向**：从素材中提取3-5个核心关键词，形成写作大纲的雏形
+2. **识别目标账号**:根据话题自动选账号(AI 产品类 → main,技术工程类 → tech),并加载对应 voice。也可由用户显式指定。
 
-这个阶段要快，不要过度确认。如果用户的意图已经很清楚（比如"帮我写一篇关于XXX的公众号文章"），直接进入下一阶段。
-
----
-
-### 阶段二：全网信息搜索与整理
-
-目标：围绕主题收集足够多的高质量素材，让文章有深度、有料。
-
-1. **多轮搜索**（使用WebSearch工具）：
-   - 第1轮：搜索核心话题的最新资讯和数据（如"2025年XX行业趋势"）
-   - 第2轮：搜索相关案例和故事（如"XX成功案例"）
-   - 第3轮：搜索专家观点或权威报告（如"XX领域专家观点"）
-
-2. **信息筛选**：
-   - 去重，交叉验证关键数据
-   - 优先使用最近6个月的数据和案例
-   - 标注信息来源，方便后续引用
-
-3. **形成写作提纲**：将素材按逻辑分组，规划文章结构（标题→引言→正文2-4节→总结）
-
-搜索时注意：每次搜索用不同的关键词组合，避免信息同质化。如果某个方向搜索结果不理想，灵活调整关键词。
+3. **产出**:写入 `/Users/crimson/codes/0.docs/mp-articles/<main|tech>/<YYYY-MM-DD>-<slug>/brief.md`,包含话题、目标账号、3-5 个关键词、用户提供的真实细节清单。
 
 ---
 
-### 阶段三：撰写文章
+### 阶段二:全网信息搜索与整理
 
-目标：写出一篇适合微信公众号传播的高质量文章。
+目标:既要权威数据,也要**真人语料**(反 AI 检测的第二重原料)。
 
-**文章结构模板**（Markdown格式）：
+1. **权威层**(WebSearch):
+   - 最新资讯 + 数据(优先 6 个月内)
+   - 相关案例 / 故事
+   - 专家观点 / 官方报告 / Release Notes
 
-**注意**：Markdown 中的第一个 `# 标题` 会被 html_converter 自动跳过（不输出到正文HTML中），因为微信公众号会在文章顶部自动显示标题，正文中重复标题会冗余。标题仅用于 `publish.py --title` 参数和文件内部标记。
+2. **真人层**(**重要**):专门搜"真人讨论"作为语料库,让文章自然带上真人句式:
+   - Reddit / HackerNews / V2EX / 即刻 / 少数派的帖子原话
+   - X (Twitter) 上当事人 / 员工的发言原文
+   - 小红书 / 知乎的一线用户吐槽
+   - 产品具体的 commit message / issue 讨论
+
+3. **信息筛选与交叉验证**:关键数据多源交叉,具体到数字 / 名字 / 时间 / 产品版本号。
+
+4. **产出**:`/Users/crimson/codes/0.docs/mp-articles/<main|tech>/<slug>/research.md`,每个素材标来源,区分"权威层"和"真人层"。
+
+---
+
+### 阶段三:撰写骨架稿(第一轮)
+
+目标:按结构写出初稿。**允许这一稿有 AI 味**,下一阶段专门负责"人味化"。
+
+#### 文章结构模板(Markdown)
+
+> Markdown 中的第一个 `# 标题` 会被 html_converter 自动跳过(微信顶部已显示标题,不重复)。
 
 ```markdown
-# 标题（抓眼球，15-25字为佳）
+# 标题(抓眼球,15-25 字)
 
-> 摘要引言（1-2句话概括核心观点，会显示在分享卡片中）
+> 摘要引言(1-2 句话,会显示在分享卡片中)
+
+## 开篇
+(用一个具体场景 / 具体数字 / 具体人物 / 具体对话切入,3-5 行抓住注意力。
+禁止"随着 XX 的飞速发展"这类宏观铺垫。)
 
 ![开篇配图描述](placeholder)
 
-## 开篇引入
-（用故事、数据或热点事件，3-5行内抓住读者注意力）
+## 小节一:xxx
 
-![开篇配图描述](placeholder)
+## 小节二:xxx
 
-## 正文小节一：XXX
-（展开第一个论点，配合数据/案例，深入分析）
+## 小节三:xxx
 
-![小节一配图描述](placeholder)
-
-## 正文小节二：XXX
-（展开第二个论点，补充不同角度的论据）
-
-![小节二配图描述](placeholder)
-
-## 正文小节三：XXX
-（展开第三个论点，加入实操建议或案例故事）
-
-![小节三配图描述](placeholder)
-
-## 正文小节四：XXX（可选）
-（如果话题足够丰富，可以展开第四个甚至第五个小节）
-
-![小节四配图描述](placeholder)
-
-## 正文小节五：XXX（可选）
-（延伸讨论、未来展望、行业影响等）
-
-![小节五配图描述](placeholder)
+(可选更多)
 
 ## 写在最后
-（不要简单总结，给出有力的收束观点、行动建议或开放问题。可加互动引导语。）
 ```
 
-**文章规模指南**：
-- **正文小节数量：4-6个**，每个小节围绕一个独立论点展开，做到"有料、有例、有图"
-- **每个小节 400-800 字**，包含论点阐述、数据/案例支撑、以及一段引用块（金句或关键数据）
-- **配图数量：6-10张**，确保每个小节至少配1张图，重要小节可配2张（如一张概念图+一张数据图）
-- **总字数目标：3000-5000字**，做到深度够、节奏好、读起来不累
+#### 文章规模(柔性指南,不要机械)
 
-#### 写作风格指南（参考宝玉AI、量子位等头部AI博主）
+- **小节数量:3-6 个**,按话题决定,**不要强行凑对称**。有的小节 1000 字,有的 200 字都可以 —— 真人写作就是这样不均匀。
+- **配图数量:6-10 张**,每个小节至少 1 张。所有配图统一使用手绘蓝色信息图风格(见阶段四)。
+- **总字数目标:2500-5000 字**,有话则长无话则短。
 
-**整体调性**：专业但不学术，通俗但不肤浅，有观点但不偏激。让读者觉得"这个作者懂行，而且说人话"。
+#### 写作风格(按账号 voice 区分)
 
-**具体要求**：
+**main(飞哥 / 刷屏AI)**:热情,类比多,偶尔北京口语("这事儿"、"说实话"、"我跟你讲"),爱用"我踩过的坑"开头,情绪有起伏,可以用破折号和感叹号。
 
-- **标题要有信息量，不做标题党**：好标题 = 核心信息 + 情绪钩子。15-25字为佳。参考以下爆款标题公式：
-  - **痛点+方案+数字**："告别排版地狱：这个AI神器让公众号发文从3小时变成10分钟"
-  - **身份代入+结果**："我用AI写了个工具，现在公众号文章从写作到发布只要10分钟"
-  - **反常识/悬念**："写代码的时代结束了，设计Agent工作环境的时代开始了"
-  - **干货承诺+具体数字**："Claude迎来史上最大更新：8个新功能一文看懂"
-  - **对比冲突**："3小时 vs 10分钟：一个AI工具如何改变我的公众号写作流程"
-  - 避免纯标题党（"震惊！"、"竟然！"），避免信息量为零的悬念标题
-- **开头直切主题**：不要铺垫太多。第一段就要让读者知道这篇文章讲什么、跟他有什么关系。可以用一个反常识的数据、一个最新的事件、或者一个读者关心的问题来开头。
-- **段落要短，3-4行最佳**：手机屏幕一屏大约能显示4-5行文字。段落超过5行就会让读者感到压迫。善用换行来制造"呼吸感"。
-- **语言有温度但不油腻**：用"你"而不是"读者"，用"我们"拉近距离。但避免过度亲昵（"亲"、"宝子"）或过度口语化。保持一种"聪明朋友跟你聊天"的感觉。
-- **善用加粗突出重点**：文章中**关键观点和数据**要加粗，因为大多数读者是"扫读"模式。但不要每段都加粗，否则等于没加粗。
-- **每200-400字配一张图**：图文交错能显著降低阅读疲劳感。配图要和内容相关，每个小节至少一张图。一篇完整文章通常需要6-10张配图。
-- **金句点缀**：每个小节可以有1个引用块（blockquote），放金句或关键数据。在微信排版中引用块非常醒目，是天然的"视觉锚点"。
-- **深度展开每个论点**：不要蜻蜓点水。每个小节围绕一个核心论点，至少包含：论点阐述（是什么）、原因分析（为什么）、案例/数据佐证（怎么证明）、实操建议或延伸思考（怎么用）。
-- **善用小标题和列表**：长文章需要清晰的导航结构。二级标题划分大板块，三级标题拆分细节，列表呈现并列信息。
-- **结尾要有余韵**：不要用"综上所述"这种学生作文式结尾。可以抛一个开放问题、给一个行动建议、或者用一句有力的总结收束。
-- **文末互动自然**：可以加"你怎么看？欢迎留言讨论"之类的引导语，但要写得自然，像是顺口一说，而不是模板化的"点赞关注转发"。
-- **总字数目标3000-5000字**：要有足够的深度和信息量。每个小节要展开充分，配合具体的数据、案例和分析，让读者觉得"这篇文章值得收藏"。
+**tech(葱哥 / 蒜是哪根葱)**:冷,偏吐槽,**不用感叹号**,爱用命令行片段、版本号、commit hash,文末常带一个反问或小段 rant("这破玩意""讲真""其实挺简单的"风格)。
 
-**要避免的"AI味"写法**：
-- 不要用"首先...其次...再次...最后..."这种教科书式的枚举
-- 不要每段开头都用"值得一提的是"、"不可否认"、"毋庸置疑"等套话
-- 不要用过于工整的排比句，真人写作有自然的参差感
-- 不要在文末做过于全面的"总结回顾"，读者已经看过了，不需要你复述一遍
-- 不要把所有信息平铺直叙，要有主次、有取舍、有节奏
+无论哪个号,都要遵守 **阶段 3.5 的反 AI 检测清单**(下一节)。
 
-**关于图片**：在写文章时，先用占位符描述需要什么图片，格式为 `![图片主题描述](placeholder)`。后续阶段再替换为真实图片。
+#### 排版增强标记(行内标色)
+
+骨架稿阶段就要**主动混用**多种行内标记,让段内文字有丰富的颜色变化。整篇只用一种 `**加粗**` 是最典型的 AI 公众号指纹。
+
+| 标记 | 效果 | 什么时候用 |
+|---|---|---|
+| `**文本**` | 主加粗(深色 + 黄下划线) | 最重要的一句结论,一段最多 1 次 |
+| `==文本==` | 黄色背景高亮 | 关键数据 / 核心论点 / 名言 |
+| `++文本++` | 蓝色背景高亮 | 概念定义 / 工具名 / 平台名 |
+| `%%文本%%` | 粉色背景高亮 | 警示 / 陷阱 / 反面案例 |
+| `&&文本&&` | 绿色背景高亮 | 正面结果 / 推荐做法 |
+| `!!文本!!` | 红色强调(不加背景) | 警告 / 反对 / 关键负面数字 |
+| `@@文本@@` | 蓝色强调(不加背景) | 术语 / 专有名词 / 产品名 |
+| `^^文本^^` | 橙色强调 | 温暖点缀 / 小惊喜 |
+| `> ...` | 引用块 | 金句、关键数据、一段独立有力的话 |
+| `===` 或 `[SEC]` 单独一行 | 分节符(主题自带字符,如 `● ● ●` / `— — —` / `§ § §`) | 大段之间的呼吸符 |
+
+**密度建议**:每 500 字出现 **3-5 处** 行内标记,分散在不同段落,**至少混用 4 种不同的标记类型**。禁止整篇只有 `**加粗**` 一种。
+
+#### 要避免的"AI 味"写法
+
+- 不用"首先...其次...再次...最后..."这种教科书枚举
+- 不用"值得一提的是"、"不可否认"、"毋庸置疑"、"综上所述"、"总而言之"、"由此可见"、"众所周知"
+- 不用"一方面...另一方面..."、"不仅...而且..."
+- 不用"在...的背景下"、"随着...的发展"、"站在...的角度"
+- 不用过于工整的排比句
+- 文末不做全面的"总结回顾"
 
 ---
 
-### 阶段四：生成配图
+### 阶段 3.5:人味化改写 pass(反 AI 检测核心)
 
-目标：为文章生成与主题相关的高质量手绘风格配图。
+这是整个流程最关键的一步,必须作为独立 pass 执行,不能和阶段三混在一起。
 
-**优先使用 `baoyu-danger-gemini-web` skill 生成配图**：
+Claude 自己扮演"反 AI 检测审校"的角色,对骨架稿做 **9 条强制清单** 检查,逐项改写。
 
-这是首选的配图方案。通过 gemini-web 可以根据文字描述生成精美的手绘/信息图风格图片，风格统一、与文章内容高度相关。
+#### 反 AI 检测强制清单(写完后逐条过)
 
-1. **规划配图内容**：根据文章中每个 `![描述](placeholder)` 的位置和上下文，确定每张配图应该表达的核心信息。一篇完整文章通常需要 **6-10张配图**，类型可以包括：
-   - 概念解释图（用图示说明抽象概念）
-   - 流程/架构图（展示步骤或系统结构）
-   - 对比图（before/after、A vs B）
-   - 数据可视化（趋势、占比、排名）
-   - 场景示意图（应用场景、使用方式）
-   - 总结提炼图（核心要点的视觉化归纳）
+**① Burstiness(句长抖动)**
+- 相邻三句的字数差必须出现至少一次 **>15 字**。
+- 每写 3-4 个长句,强制插入一个 **5-12 字的短句**。例如:"对。""我当时愣住了。""这事挺离谱。""先别急。"
+- 禁止连续 4 句都是 25-40 字的"标准长句"。
 
-2. **调用 baoyu-danger-gemini-web 生成图片**（首选方案）：
-   - 直接使用 gemini-web skill 的图片生成能力，为每张图提供详细的中文描述 prompt
-   - 可以并行生成多张图片（使用 `run_in_background`），提高效率
-   - 也可使用 `Skill("baoyu-infographic")` 生成更复杂的信息图，适合需要结构化展示数据的场景
+**② 句式多样性 —— 禁用词清单**
+在最终稿中全文搜索以下词,**命中 >1 次必须替换或删除**:
+```
+首先/其次/最后   不仅...而且   一方面...另一方面
+值得一提的是     不可否认       毋庸置疑
+综上所述         总而言之       由此可见
+众所周知         不难发现       显而易见
+在...的背景下    随着...的发展  站在...的角度
+让我们一起来     归根结底       无论如何
+```
 
-3. **配图风格规范（默认风格：手绘信息图）**：
+**③ AI 高频词黑名单**
+全文搜索以下词,**命中 >2 次必须替换**:
+```
+赋能 / 打造 / 聚焦 / 深度融合 / 生态 / 闭环 / 链路 / 抓手 /
+价值链 / 护城河 / 方法论 / 底层逻辑 / 生态位 / 结构化思维 /
+提升效率 / 助力 / 全链路 / 一站式 / 端到端 / 量变到质变 /
+引领 / 颠覆 / 革命性 / 前所未有 / 核心竞争力 / 范式 /
+降本增效 / 数字化转型 / 产业升级 / 破局 / 出圈 / 沉淀 /
+深耕 / 蓝图 / 新篇章
+```
 
-   所有配图必须保持统一的视觉风格。以下是经过验证的默认风格 prompt 模板：
+**④ 开头破冰规则**
+第一段**禁止**从宏观背景切入("近年来..."、"随着...的发展...")。改为:
+- 一个具体场景("上周三下午 4 点,我正在...")
+- 一个具体数字("我给一篇 5000 字的稿子配图花了 2 小时 47 分...")
+- 一句具体的话("同事昨天跟我说:'你这个工具能开源吗?'")
+- 一个具体的人物("OpenAI 的 Greg Brockman 在周六凌晨发了一条 tweet...")
 
-   ```
-   Generate a hand-drawn sketch style infographic in Chinese.
-   Theme: [具体主题].
-   [具体内容描述：展示什么元素、什么布局、什么标注文字].
-   Use blue (#4a6cf7) as accent color on white background.
-   Style: clean hand-drawn lines, minimalist, tech-illustration feel.
-   ```
+**⑤ 人称和立场**
+- 全文**必须**出现 ≥3 次第一人称("我")的主观表达,包含:个人经历 / 判断 / 失败 / 困惑。
+- 允许不确定表达:"我可能说错了"、"我还没完全想明白"、"这只是我的感觉"、"存疑"。
+- 禁止全程"全知冷静陈述"。
 
-   **风格要点**：
-   - **画风**：手绘线条风（hand-drawn sketch style），干净简约，有科技插画感
-   - **背景**：纯白色背景，不要复杂的纹理或渐变
-   - **主色调**：蓝色 `#4a6cf7` 作为强调色，与文章排版主题色一致
-   - **辅助色**：可根据需要添加橙色 `#ff8c42` 等对比色，但整体不超过2-3种颜色
-   - **文字**：配图中的标注文字使用中文，字体清晰可读
-   - **构图**：信息层次分明，有清晰的视觉流向（从上到下、从左到右）
-   - **元素**：善用箭头、连接线、分层结构、图标符号等信息图常见元素
-   - **禁忌**：不要写实照片风格、不要3D渲染、不要过于花哨的装饰、不要深色背景
+**⑥ 事实密度**
+每 500 字内必须有 **≥1 个具体数字或专有名词**(时间 / 金额 / 版本号 / 人名 / 产品名 / 地名)。禁止"很多"、"大量"、"据说"、"相关研究表明"。
 
-   **不同类型配图的 prompt 侧重点**：
-   - **架构图**：强调层次（Top/Middle/Bottom layer）、箭头流向、组件名称标注
-   - **对比图**：左右分栏，各自标注特征，中间用 vs 或箭头连接
-   - **流程图**：步骤编号，箭头串联，每步简短标注
-   - **雷达图/数据图**：清晰的坐标轴/维度标签，不同颜色区分数据系列
-   - **趋势图**：时间线布局，里程碑节点标注，方向箭头暗示趋势
+**⑦ 标点多样性**
+全文必须出现:
+- 破折号 `——` ≥1 次(用于插入语或强调)
+- 问号 ≥2 次(包括设问句)
+- 括号插入 `(...)` ≥1 次
+- 省略号 `...` ≤3 次(多了也是 AI 味)
+禁止整篇只有句号和逗号。
 
-3. **下载并上传到微信**：将生成的图片上传到微信服务器获取CDN链接
+**⑧ 结构的"不完美"**
+允许并鼓励:
+- 在某一小节末尾补"扯远了,回到主题"
+- 反悔句:"上面这点我收回,想了一下其实..."
+- 自嘲:"写到这里我自己都怀疑我在扯淡"
+- 小节长度明显不对称
+这些是真人写作的天然痕迹,AI 默认不会产生。
+
+**⑨ 按账号 voice 做语气再一次过滤**
+按当前账号的 voice 字段,把句子整体语气再过一遍:
+- main(飞哥):增加"我跟你讲"、"这事儿"、"说实话"等北京口语
+- tech(葱哥):删除所有感叹号,增加"这破玩意"、"讲真"、"其实挺简单的"等冷吐槽
+
+#### 执行方式
+
+Claude 明确说:"现在进入人味化改写 pass"。对骨架稿**逐段**过一遍,每段输出"原文 → 改写"对照,确保覆盖了上面 9 条。可以直接在 `article.md` 文件中原地改。
+
+---
+
+### 阶段四:生成配图
+
+**通过可选的 `image_style` 配图风格库控制视觉**。默认 `hand-drawn-blue`(手绘蓝调),保持 skill 原有视觉指纹;需要其他感觉时可换风格。
+
+#### 风格选择
+
+1. 不指定 → 用账号的 `image_style`(`main` = `hand-drawn-blue`,`tech` = `tech-card-blue`)→ 兜底 `hand-drawn-blue`
+2. 单篇覆盖:article frontmatter 加 `image_style: <name>`,或 CLI `--image-style <name>`
+3. 可用风格列表:
    ```bash
-   python3 scripts/image_handler.py upload /path/to/generated_image.png
+   python3 scripts/wechat_api.py list-image-styles
    ```
 
-4. **替换Markdown中的图片链接**：将 placeholder 替换为微信CDN返回的URL
+| 风格 | 最适合 | 卡面密度 |
+|---|---|---|
+| `hand-drawn-blue` | AI / 产品 / 工程类通用(默认) | 中 |
+| `tech-card-blue` | 技术技巧 / 命令讲解 / 短观点 | **低**(大字少内容) |
+| `illustrated-warm` | 工具使用体验 / 讲故事 / 暖色指南 | 中 |
+| `xiaohongshu-colorful` | 生活提示 / 清单 / 轻话题 | 中 |
+| `quote-card-minimal` | 金句卡(只支持贴图模式) | **低** |
+| `magazine-editorial` | 深度评论 / 专栏长文 | 中 |
+| `knowledge-card` | 教程 / 方法论 / 复习卡 | 中 |
+| `data-chart` | 数据观察 / 行业报告 / 对比 | 中(图表为主) |
+| `meme-illustration` | 吐槽 / 行业段子(慎用) | 低 |
+| **`infographic-warm`** ⭐ | **手绘水彩信息图 · 暖黄(贴图默认,对标参考图)** | **高** |
+| **`infographic-blue`** | **手绘水彩信息图 · 冷蓝(SDK/协议/产品拆解)** | **高** |
+| **`infographic-dark`** | **手绘水彩信息图 · 深夜(前沿模型/基建/赛博)** | **高** |
+| **`infographic-mint`** | **手绘水彩信息图 · 薄荷(生产力/方法论/工具)** | **高** |
 
-**备选方案：使用外部图片**
+### ⭐🔥 手绘水彩信息图系列(v4 · **贴图模式默认**)
 
-如果 baoyu-infographic 不可用或不适合当前场景，可以退回到搜索免费图片：
-- 使用WebSearch搜索相关图片（关键词加 "unsplash" / "pexels" / "free stock"）
-- 下载图片：`python3 scripts/image_handler.py download "图片URL" -d /tmp/wechat_images`
-- 上传微信：`python3 scripts/image_handler.py upload /tmp/wechat_images/图片文件名`
+这是一组**中文高密度手绘信息图**风格(NOT Bloomberg flat vector,NOT 3D),像一页日本/台湾科普绘本或杂志插页。核心只固定三件事:高信息密度、手绘水彩/墨线质感、中文信息结构清晰。
 
-**自动批量处理**：如果文章中的图片链接已经是真实URL（而非placeholder），可以一步到位：
+**共享视觉原则**(不要固定套版):
+- 9:16 竖版 1080x1920
+- **手绘水彩 + 墨线**,软纸张纹理、淡笔触
+- **高密度信息图**,每张卡必须有明确标题、解释层、结构化要点和可视化关系
+- 配色、布局、角色、图标、装饰元素都要按主题调整,不要每张都套同一个模板
+- 可选元素:顶部标签、主标题、副标题、场景插画、流程路径、终端条、2×2 网格、对比栏、时间线、数据小图表、胶囊标签、页脚水印
+- 角色不是必需项。机器人、男孩、人物、动物、设备、抽象图形都可以用;只有当内容需要"讲故事/场景化"时才放角色
+
+**4 种默认氛围只是起点,不是硬约束**:
+- ⭐ **`infographic-warm`**(**默认**)—— 暖色、通用、AI 产品、工具、人文观察
+- **`infographic-blue`** —— 冷静、技术、SDK/协议/基建/商务拆解
+- **`infographic-dark`** —— 深色、前沿模型、安全、赛博、夜间研究感
+- **`infographic-mint`** —— 清新、生产力、方法论、工具、学习笔记
+
+**何时用 infographic 系列 vs 低密度老风格?**
+
+| 判据 | 用 infographic-* | 用 tech-card-blue / quote-card-minimal |
+|---|---|---|
+| 贴图模式(newspic)| ✅ **默认就走这个** | 仅在内容是单一金句时用 |
+| 要点里有具体数字 / 产品版本 / 对比 / 时间 | ✅ | ❌ |
+| 每条要点 20 字以上,包含多层信息 | ✅ | ❌ |
+| 内容是单一观点或金句 | ❌ | ✅ |
+| 希望每张卡像杂志内页 | ✅ | ❌ |
+| 希望大字 + 留白的极简感 | ❌ | ✅ |
+
+**⚠️ 重要提醒**:
+- infographic 系列需要 **brief.md 的要点里有具体信息**(数字、名词、对比、步骤名),AI 才能把子点渲染成真内容。要点越具体,生成的信息图越真实。
+- 如果要点只是一句抽象观点,AI 会在子卡里编数据 —— 那种情况下不如直接用 `tech-card-blue` 做极简大字卡更稳。
+
+每种风格的预览图、完整 prompt 模板、适用场景见 [`assets/image-styles/README.md`](assets/image-styles/README.md)。
+
+#### 配图数量
+
+**优先使用项目内置 `scripts/generate_image.py` 生成**。一篇完整文章 6-10 张配图,每个小节至少 1 张。
+
+#### 配图类型(按内容选)
+
+- 概念解释图
+- 流程 / 架构图
+- 对比图(before/after、A vs B)
+- 数据可视化(趋势、占比、排名)
+- 场景示意图
+- 总结提炼图
+
+#### 生图 prompt
+
+读你要用的风格 JSON,拿出 `prompt_template.article_inline`,用它作模板生图。示例:
+
 ```bash
-python3 scripts/image_handler.py process article.md -o article_processed.md
+# 读 hand-drawn-blue 风格的 article 模板
+cat assets/image-styles/hand-drawn-blue.json | python3 -c "
+import json, sys
+s = json.load(sys.stdin)
+print(s['prompt_template']['article_inline'])
+"
 ```
 
-**封面图**：从文章图片中选一张最有视觉冲击力的作为封面，或使用 baoyu-infographic 单独生成。封面图建议尺寸：900×383像素（2.35:1比例），这是微信公众号的推荐比例。
+替换 `{image_subject}` 占位符为你这张图的具体主题,喂给项目内置 `scripts/generate_image.py`。
+
+**禁忌**(和默认风格有冲突时以所选风格为准):
+- 不要混用风格 —— 一篇文章所有配图统一一种风格
+- 不要用写实照片、3D 渲染(除非明确选了 `meme-illustration` 等允许卡通的风格)
+
+#### 下载 + 上传
+
+```bash
+python3 scripts/image_handler.py upload /path/to/generated_image.png
+```
+
+把返回的微信 CDN URL 替换 Markdown 中对应的 placeholder。
+
+#### 封面图
+
+从已生成的图里挑一张最有视觉冲击力的,或用同一 prompt 模板单独生成。推荐尺寸 **900×383**(2.35:1)。
 
 ---
 
-### 阶段五：格式转换与排版
+### 阶段五:格式转换与排版
 
-目标：将Markdown转换为微信兼容的精美HTML。
+**为什么需要特殊转换**:微信公众号编辑器不支持外部 CSS / JS、不支持 class、所有样式必须内联。
 
-**为什么需要特殊转换**：微信公众号编辑器有许多限制——不支持外部CSS/JS、不支持class属性、所有样式必须内联到每个标签的style属性中。普通的Markdown转HTML工具生成的代码在微信中会显示为纯文本。
+#### 执行转换
 
-**执行转换**：
 ```bash
-python3 scripts/html_converter.py article_processed.md -o article.html
+python3 scripts/html_converter.py article_processed.md \
+  --theme <theme-name> \
+  -o article.html
 ```
 
-转换器会自动：
-- 将所有CSS样式内联到每个HTML标签
-- 应用清新现代的蓝色主题排版（标题渐变背景、圆点列表、柔和阴影等）
-- 处理微信不支持的HTML特性
+**主题一般不用手动指定** —— 后面 `publish.py` 会根据 `--account` 自动从 `wechat-publisher.yaml` 里读 theme 字段。但如果你想预览某个主题:
+```bash
+python3 scripts/html_converter.py article.md --list-themes
+python3 scripts/html_converter.py article.md --theme refined-blue -o preview.html
+```
 
-**排版风格说明**：
-- 主色调：#4a6cf7（优雅蓝），用于标题边框、加粗文字、列表圆点等
-- 正文字号：15px，行高2倍，字间距0.8px，阅读舒适
-- 段落间距宽松，给内容"呼吸感"
-- 引用块使用淡蓝灰背景，柔和不抢眼
-- 代码块使用深色主题（Catppuccin风格），圆角10px
-- 图片带柔和阴影（0 4px 16px），圆角6px
+对比全部主题的可视化预览:打开 `assets/theme-previews/index.html`,16 套主题用同一篇文章渲染在手机宽度 frame 里并排对比。
 
-**自定义样式**：样式配置在 `assets/style_config.json`，可以修改颜色、字号、间距等。如果用户要求不同的配色，可以直接编辑这个JSON文件。
+#### 主题说明(共 16 套 · v2026)
 
-**检查HTML**：转换后可以检查HTML文件，确保没有异常。常见问题：
-- 图片URL是否都是 `mmbiz.qpic.cn` 开头的微信CDN链接
-- 是否有遗留的 placeholder 未替换
-- 表格是否正确渲染
+按文章气质分类挑选,不确定就用 main 默认的 `refined-blue`:
+
+| 类别 | 推荐主题 |
+|---|---|
+| **AI / 产品 / 深度分析** | `refined-blue` **(main 默认)** · `business-navy` · `sage-premium` |
+| **技术 / SDK / 工程** | `minimal-mono` **(tech 默认)** · `minimal-bw` · `academic-paper` · `cyber-neon` |
+| **新闻 / 热点 / 速读** | `news-bold` · `warm-editorial` |
+| **人文 / 随笔 / 文化** | `ink-wash` · `elegant-ink` · `magazine-grid` |
+| **生活 / 美食 / 旅行** | `warm-orange` · `mint-fresh` · `sunset-coral` |
+| **时尚 / 美妆 / 情感** | `girly-pink` · `sunset-coral` |
+
+逐套视觉简介:
+
+| 主题 | 视觉 | 默认绑定 |
+|---|---|---|
+| `refined-blue` | 蓝调极简 + 精致层次 / 数字标号 / 渐变高亮 | **main**(刷屏AI) |
+| `minimal-mono` | 极简黑白 + 等宽字,工程师风 | **tech**(蒜是哪根葱) |
+| `minimal-bw` | 瑞士现代主义 · Helvetica,只用粗细 / 留白做层级 | (可选) |
+| `academic-paper` | 论文格式 + 衬线正字,章节编号式层级 | (可选) |
+| `business-navy` | 深蓝 + 金色点缀,权威克制的金融感 | (可选) |
+| `cyber-neon` | 深色底 + 霓虹青紫,赛博科技感 | (可选) |
+| `news-bold` | 红黑强对比 + 快节奏,信息密度高 | (可选) |
+| `warm-editorial` | 栗色暖调,衬线杂志风 | (可选) |
+| `ink-wash` | 米黄纸 + 朱砂宋体,中式留白美学 | (可选) |
+| `elegant-ink` | 墨黑 + 朱砂红,衬线现代宋体 | (可选) |
+| `magazine-grid` | 衬线大标题 + 大留白,杂志内页感 | (可选) |
+| `warm-orange` | 暖橙生活号,亲切日常感 | (可选) |
+| `mint-fresh` | 薄荷绿 + 圆角卡片,轻盈透气 | (可选) |
+| `sunset-coral` | 夕阳珊瑚,暖橙 + 奶白 | (可选) |
+| `sage-premium` | 鼠尾草墨绿,克制专业 | (可选) |
+| `girly-pink` | 粉紫渐变 + 可爱风,少女向 | (可选) |
+
+**通过主题名选择**:在 `wechat-publisher.yaml` 里修改对应账号的 `theme:` 字段即可切换。例如把 main 账号换到 `sunset-coral`:
+
+```yaml
+accounts:
+  main:
+    theme: "sunset-coral"    # 默认 refined-blue
+```
+
+#### 行内标色系统
+
+排版系统支持 7 种行内标色(见阶段三的标记表),转换器会把自定义标记替换为内联 style:
+
+- `**加粗**`:主强调,深色 + 黄色下划线
+- `==黄==` / `++蓝++` / `%%粉%%` / `&&绿&&`:4 种背景高亮
+- `!!红!!` / `@@蓝@@` / `^^橙^^`:3 种字体强调色
+
+实际主题文件在 `assets/themes/*.json`,内部结构:`styles`(标签样式)+ `highlights`(行内标色)+ `section_divider_text`(分节符字符)+ `list_style`(序号 / 项目符号样式)。
+
+#### 自定义
+
+要改配色 / 字号 / 间距,编辑 `assets/themes/<theme>.json`,修改 `styles` 或 `highlights` 字段。
+要改有序列表的序号样式(如阿拉伯数字 / 中文 / 罗马数字 / 圆圈数字),改 `list_style.num_formatter`(可选 `decimal` / `padded` / `chinese` / `roman_upper` / `roman_lower` / `circled` / `circled_filled`)。
 
 ---
 
-### 阶段六：发布到草稿箱
+### 阶段 5.5:AI 味自检 gate(publish.py 自动拦截)
 
-目标：将完成的文章上传到微信公众号草稿箱。
+**这一步已经是 publish.py 内置的强制 gate**:`publish.py` 在调用草稿接口之前会自动调用 `ai_score.check_ai_score()`,分数 ≥ 阈值(默认 45)直接拦住,不会发草稿。
 
-**一键发布**：
+#### publish.py 的自动 gate
+
+```bash
+# 默认阈值 45
+python3 scripts/publish.py --account main --input article.md --cover cover.jpg --title "..."
+
+# 自定义阈值(更严)
+python3 scripts/publish.py ... --ai-score-threshold 35
+
+# 极少数情况下强制绕过(需要人工已审校确认)
+python3 scripts/publish.py ... --skip-ai-score
+```
+
+#### 写作过程中手动检查
+
+写作时还是推荐显式跑一次 `ai_score.py` 看细节报告:
+
+```bash
+python3 scripts/ai_score.py /Users/crimson/codes/0.docs/mp-articles/<main|tech>/<slug>/article.md --threshold 45
+```
+
+输出示例:
+```
+ AI 味检测报告  —— 🟢 PASS (真人味)
+总分: 28.3 / 100
+  [burstiness  ] 分数=45.0  权重=30%
+  [phrases     ] 分数=15.0  权重=30%
+  [vocab       ] 分数=10.0  权重=20%
+  [structural  ] 分数= 0.0  权重=10%
+  [punctuation ] 分数=30.0  权重=10%
+```
+
+#### 阈值约定
+
+- **< 35**:🟢 PASS,可以发
+- **35-45**:🟡 WARN,能发但建议再改一轮
+- **≥ 45**:🔴 FAIL,`publish.py` 会拒绝发送,**必须回到阶段 3.5 重写命中的段落**
+
+#### 脚本命中时怎么做
+
+`ai_score.py` 会列出具体命中的 AI 套话和 AI 高频词。Claude 应该:
+1. 读取脚本输出里的 "命中 X 次 AI 套话" 列表
+2. 对每一条命中,在文章里定位那个句子,**重写**(不只是替换词,而是换整个句式)
+3. 对 vocab 命中,替换成更具体 / 更口语的表达(比如"赋能" → "让 xxx 变得能做 yyy")
+4. 重跑 `ai_score.py`,直到通过
+
+#### 可选:外部第三方检测
+
+作为双保险,建议在发布前手动打开:
+- 朱雀 AI 检测:https://matrix.tencent.com/ai-detect/
+- GPTZero:https://gptzero.me/
+- 百度 AI 检测
+
+任一平台给出 >70% AI 概率的段落,必须重写。
+
+---
+
+### 阶段六:发布到草稿箱
+
+目标:上传到微信公众号草稿箱(不会自动群发)。
+
+**一键发布**(推荐):
 ```bash
 python3 scripts/publish.py \
-  --input article.md \
-  --cover /tmp/wechat_images/cover.jpg \
+  --account <main|tech> \
+  --input /Users/crimson/codes/0.docs/mp-articles/<main|tech>/<slug>/article.md \
+  --cover /Users/crimson/codes/0.docs/mp-articles/<main|tech>/<slug>/cover.jpg \
   --title "文章标题" \
-  --digest "120字以内的摘要"
+  --digest "120 字以内摘要"
 ```
 
-默认作者为"飞哥"，无需额外指定。如需自定义作者，添加 `--author "其他作者"` 参数。
+`publish.py` 会自动:
+1. 从 `wechat-publisher.yaml` 读取对应账号的 `author` 和 `theme`
+2. 按 theme 加载对应主题排版
+3. 处理图片 → HTML 转换 → 封面上传 → 创建草稿
+4. 返回 `media_id`
 
-publish.py 会自动完成：图片处理 → HTML转换 → 封面图上传 → 创建草稿
+**不需要手动传 `--theme` 或 `--author`** —— 账号配置会自动带入。
 
-**如果已有排版好的HTML**：
+**已有排版好的 HTML**:
 ```bash
-python3 scripts/publish.py \
-  --html article.html \
-  --cover /tmp/wechat_images/cover.jpg \
-  --title "文章标题"
+python3 scripts/publish.py --account tech --html article.html --cover cover.jpg --title "标题"
 ```
 
-**发布成功后**：脚本会返回草稿的 `media_id`。告诉用户：
-- 文章已成功保存到草稿箱
-- 请登录微信公众平台（mp.weixin.qq.com）查看草稿并确认发布
-- 文章不会自动群发，需要手动点击发布
+**发布成功后告知用户**:
+- 草稿已保存,请登录 mp.weixin.qq.com 查看草稿箱并手动确认发布
+- 文章不会自动群发
+
+---
+
+### 阶段七:多平台同步(可选,opt-in)
+
+**目的**:把发到微信草稿箱的同一篇文章,一键同步到知乎、掘金、CSDN、头条等平台(各平台也存为草稿)。
+
+**默认不启用** —— 只有显式传参才触发,微信发布流程完全不受影响。同步失败也不影响已经创建好的微信草稿。
+
+#### 前置一次性安装
+
+底层基于 [Wechatsync](https://github.com/wechatsync/Wechatsync),复用 Chrome 扩展里各平台已登录的 Cookie,不经过任何第三方服务器。
+
+1. 装 Chrome 扩展「Wechatsync」,并分别登录知乎 / 掘金 / CSDN 等目标平台
+2. 扩展设置里打开「MCP 连接」,生成一个 Token 拷出来
+3. 装 CLI:
+   ```bash
+   npm install -g @wechatsync/cli
+   ```
+4. 在 `wechat-publisher.yaml` 里配置:
+   ```
+   integrations:
+     wechatsync_mcp_token: "<第二步拷出的 Token>"
+   ```
+5. 自检:
+   ```bash
+   python3 scripts/multi_publish.py --check
+   ```
+   两项都打 `✓` 说明就绪。
+
+#### 触发方式
+
+**方式 A:命令行显式指定平台(最常用)**
+```bash
+python3 scripts/publish.py --account main \
+  --input /Users/crimson/codes/0.docs/mp-articles/main/<slug>/article.md \
+  --cover /Users/crimson/codes/0.docs/mp-articles/main/<slug>/cover.jpg \
+  --sync zhihu,juejin,csdn
+```
+
+**方式 B:从账号配置读默认平台列表**
+
+先在 `wechat-publisher.yaml` 对应账号下加:
+```yaml
+accounts:
+  main:
+    ...
+    sync_platforms: [zhihu, juejin]
+```
+然后发布时加 `--sync-from-config`:
+```bash
+python3 scripts/publish.py --account main --input x.md --cover x.jpg --sync-from-config
+```
+
+**方式 C:独立跑(不发微信,只同步)**
+```bash
+python3 scripts/multi_publish.py --input x.md --platforms zhihu,juejin
+```
+
+#### 图片注意事项
+
+微信 CDN(`mmbiz.qpic.cn`)有严格防盗链,其他平台加载时会显示「此图片来自微信公众平台」占位图。
+因此同步走的是**原始 markdown**(`article.md`),不是已处理过的版本。
+
+- 外部 URL 图片(HTTPS):wechatsync 自动转存到各平台,通常没问题
+- 本地路径图片(比如 `/Users/crimson/codes/0.docs/mp-articles/main/<slug>/images/fig1.png`):wechatsync 的文档未明确是否支持
+  - `multi_publish.py` 会扫出并提示有多少张本地图
+  - 如果目标平台发现图加载不出来,需要把本地图先传到公开图床(或任何无防盗链的 CDN)、改成 URL 后再跑同步
+
+#### 失败处理
+
+- 同步失败**不回滚**微信草稿(微信草稿已在阶段六成功创建)
+- 告知用户:微信草稿 OK,但某平台同步失败 → 可以登录 Chrome 扩展手动重试
+- 各平台同步后都是「草稿」状态,**不会**直接公开发布,需要用户登录各平台二次确认
+
+---
+
+## 贴图模式(newspic / 图片消息,与文章模式并列)
+
+和上面 7 阶段的"图文"(news)流程**并列**的第二种发布形态。对标微信公众号的"图片消息":5-10 张图的**卡片墙** + 一段 100-300 字的**短描述**,适合:
+
+- 单一主题的"拆卡"式讲解(示例:[Claude Code /rewind](https://mp.weixin.qq.com/s/erEF74HRGkrBPxTGsKDsSQ))
+- 金句 / 观点串
+- 图片清单 / 作品合集
+- 任何"文字偏少、靠图主导"的内容
+
+### 贴图默认就是高密度手绘信息图
+
+**不需要在 brief.md 里写 `image_style`**,贴图模式的默认兜底是 `infographic-warm`。默认要求是:
+
+- **高密度中文信息图**,不是普通插画、不是大字海报
+- **手绘水彩 + 墨线**,不是 flat vector、不是 3D
+- 9:16 竖版,每张卡都要承载足够信息
+- 配色、布局、设计组件和画面元素按主题自适应,不要固定成同一套版式
+- 机器人、小男孩、终端条、2×2 网格、胶囊标签等都是可选元素,只在内容合适时使用
+
+想换整体氛围就在 brief.md 写 `image_style: infographic-blue` / `infographic-dark` / `infographic-mint`(见 [`assets/image-styles/README.md`](assets/image-styles/README.md))。即使用这些风格,也只是给一个视觉方向,不是强制固定布局。
+
+**账号级别**:`wechat-publisher.yaml` 里每个账号可以配 `newspic_image_style`,与文章模式的 `image_style` 分开(因为文章线条手绘和贴图水彩信息图是两种完全不同的视觉语言)。当前默认:
+- main 账号 → `newspic_image_style: infographic-warm`(参考图同款)
+- tech 账号 → `newspic_image_style: infographic-blue`(冷蓝变体)
+
+### 何时用贴图,何时用图文
+
+| 判据 | 图文(news) | 贴图(newspic) |
+|---|---|---|
+| 正文字数 | 2500-5000 字 | 100-300 字短描述 |
+| 图数 | 6-10 张内联 | 5-10 张卡片墙 |
+| 主载体 | 文字 | 图片 |
+| 结构 | 开篇/小节/结尾 | 拆卡,一卡一要点 |
+| 适合 | 深度观察 / 教程长文 | 观点串 / 技巧卡 / 金句 |
+| AI 味 gate | 完整 5 维 | 精简(phrases + vocab + punctuation) |
+
+### 4 步流程
+
+```
+brief.md → newspic_build.py 拆卡 → `scripts/generate_image.py` 批量生图 → publish.py --type newspic
+```
+
+#### 1. 写 brief.md
+
+```markdown
+---
+topic: "Claude Code /rewind 命令"
+image_style: infographic-warm  # 可选,不写用账号 newspic_image_style,再兜底 infographic-warm
+card_count: 6                  # 可选,不写按要点数
+title: "Claude Code 里,最有用的命令之一"
+account: main
+---
+
+# 要点
+
+1. /rewind 厉害的地方不是"撤销一下",而是给你一个更对的工作流
+2. 你可以输入 /rewind,也可以连续按两次 Esc,快速回滚代码
+3. AI 解决不好问题,常常不是因为它不够会写,而是你不敢让它放手试
+4. /rewind 的价值,就是把"试错"这件事真正变得可控
+
+# 短文本
+
+/rewind 厉害的地方,不是"撤销一下",而是给你一个更对的工作流:
+先大胆尝试,再快速回退。
+真正值得的不是它的撤销力,而是它给你的"敢试"。
+```
+
+**frontmatter 字段**:
+- `topic`(必填):整个贴图的核心主题,用于给 Claude 提供语境
+- `image_style`(可选):配图风格。不填就走 **账号 `newspic_image_style` → 全局 `infographic-warm`** 兜底。贴图模式默认就是高密度手绘水彩信息图,正常情况下这行留空。
+- `card_count`(可选):卡片数量,不填按要点数,必须 ≤ 要点数,≤ 20
+- `title`(可选):贴图标题,不填也行
+- `account`(可选):发到哪个账号
+
+**正文**至少要有 `# 要点` 小节,每行一条要点;`# 短文本` 可选(不填就让 Claude 根据要点写)。
+
+#### 2. 拆卡 + 生成计划
+
+```bash
+python3 scripts/newspic_build.py brief.md
+# → 同目录写出 card_plan.json,列出每张卡的主副文字 + 完整 Gemini prompt + 目标文件名
+```
+
+Claude 读 `card_plan.json`,按每张卡的 `prompt` 字段调项目内置 `scripts/generate_image.py` 生图,保存到 `brief.md` 同目录的 `images/01.png`、`02.png` ...
+
+#### 3. 写 / 检验短文本
+
+如果 `brief.md` 的 `# 短文本` 还是空的,Claude 根据要点写一段 100-300 字,填回去。
+
+**短文本必须通过 AI 味 gate**(newspic 模式权重:phrases 55% + vocab 35% + punctuation 10%,跳过 burstiness / structural):
+
+```bash
+# publish.py 会自动在发送前跑一次,这里是手动预检
+python3 scripts/ai_score.py brief.md --mode newspic --threshold 45
+```
+
+命中 AI 套话或高频词 → 回去改短文本,重跑直到通过。
+
+#### 4. 发布
+
+```bash
+python3 scripts/publish.py --account main --type newspic --brief brief.md
+# 或显式覆盖风格
+python3 scripts/publish.py --account main --type newspic --brief brief.md --image-style knowledge-card
+```
+
+`publish.py` 做的事:
+1. 从 brief.md 读 frontmatter + 短文本
+2. 跑 AI 味 gate(newspic 模式),不过就停
+3. 扫 `brief.md 同目录/images/*.{png,jpg,jpeg,webp}`,按文件名排序作为展示顺序
+4. 逐张上传为微信永久素材(每张占一个永久素材名额,5000 上限)
+5. 调 `draft/add` 建 newspic 草稿
+
+⚠️ **永久素材成本提醒**:贴图每张都走 `add_material`,5-10 张贴图每次发布占 5-10 个永久素材名额。文章模式的正文图走 `uploadimg` 不占名额,但**封面图**和**贴图图片**都要占。
+
+### newspic 的限制
+
+- 微信最多 20 张图,建议 5-10 张,低于 2 张会警告
+- 不支持多平台同步(`--sync` / `--sync-from-config`)
+- 不支持行内标色、HTML 主题 —— 短文本只是一段纯文本
+- 不建议配 `quote-card-minimal` 以外的过重装饰 + 长句,**卡面字数超过 20 字会影响阅读**
+
+---
+
+## 文件组织约定
+
+**重要:所有生成的文件必须直接放在项目目录内,不要放在 `~/.claude/` 下。**
+
+`~/.claude/` 是 Claude Code 的敏感目录,即使开了 bypass permissions,写入该目录也会弹确认框。直接写到项目路径可以避免这个问题,同时"工作目录"和"归档目录"合二为一,少一步搬运。
+
+所有生成的文件(包括中间产物和最终归档)都放在:
+
+**图文(news)布局**:
+```
+/Users/crimson/codes/0.docs/mp-articles/<main|tech>/<YYYY-MM-DD>-<slug>/
+  ├── brief.md            # 阶段一的需求摘要
+  ├── research.md         # 阶段二的搜索素材
+  ├── article.md          # 阶段三/3.5 的文章(最终发布源)
+  ├── article.html        # 阶段五转换的 HTML(临时)
+  ├── images/             # 所有生成的配图
+  ├── cover.jpg           # 封面图
+  └── ai_score.json       # 阶段 5.5 的检测报告
+```
+
+**贴图(newspic)布局**:
+```
+/Users/crimson/codes/0.docs/mp-articles/<main|tech>/<YYYY-MM-DD>-<slug>/
+  ├── brief.md            # 话题 + 要点 + 短文本(发布源)
+  ├── card_plan.json      # newspic_build.py 产出的每张卡的 prompt + 目标文件名
+  └── images/
+      ├── 01.png          # 按顺序编号,01 = 封面
+      ├── 02.png
+      └── ...
+```
+
+- `<main|tech>` 按目标账号选:`main` 账号 → `main/` 文件夹,`tech` 账号 → `tech/` 文件夹
+- `<YYYY-MM-DD>-<slug>` 格式:日期 + 短横线 + 语义化 slug(纯小写英文短横线分隔)
+- 各阶段的命令和路径都要相应调整,例如:
+  ```bash
+  python3 scripts/ai_score.py /Users/crimson/codes/0.docs/mp-articles/main/<slug>/article.md --threshold 45
+  python3 scripts/publish.py --account main \
+    --input /Users/crimson/codes/0.docs/mp-articles/main/<slug>/article.md \
+    --cover /Users/crimson/codes/0.docs/mp-articles/main/<slug>/cover.jpg \
+    --title "..."
+  ```
+
+**历史遗留**:如果看到 `~/.claude/skills/wechat-publisher/generated/` 下还有老文件,可以整体 `mv` 到项目路径下对应的 `main/` 或 `tech/` 文件夹,然后清空 `generated/`。新文章不要再往 `generated/` 写。
+
+**不要**把 `article.md` / `article.html` 写到 wechat-publisher 根目录(那些是临时产物,不应污染 skill 目录)。
 
 ---
 
 ## 脚本说明
 
-所有脚本位于 `scripts/` 目录下：
+| 脚本 | 用途 |
+|---|---|
+| `publish.py` | 完整发布流程(一键,含 AI 味 gate)。支持 `--type news\|newspic` 双模式 |
+| `generate_image.py` | **统一生图入口** —— 根据 `wechat-publisher.yaml` 选择 `baoyu-image-gen` 或 `baoyu-danger-gemini-web` |
+| `newspic_build.py` | **贴图拆卡器** —— brief.md → card_plan.json(Claude 再按 prompt 生图) |
+| `wechat_api.py` | **facade** —— 重导出下述模块 + 提供 CLI |
+| `config.py` | (内部)`wechat-publisher.yaml` + 配图风格加载 + `set_account` / `get_config` / `resolve_image_style` |
+| `wechat_token.py` | (内部)`get_access_token`,本地文件缓存 |
+| `api.py` | (内部)图片上传(3 种:封面 / 正文 / newspic 素材)/ 草稿 / 发布 |
+| `html_converter.py` | Markdown → 微信 HTML(多主题 + 行内标色) |
+| `image_handler.py` | 图片下载 / 上传 / 替换 |
+| `ai_score.py` | **反 AI 检测自检**,支持 `--mode news\|newspic` 两种检测策略 |
+| `multi_publish.py` | **多平台同步**(阶段七,基于 @wechatsync/cli,默认不启用) |
 
-| 脚本 | 用途 | 何时使用 |
-|------|------|----------|
-| `wechat_api.py` | 微信API封装（token、上传、草稿） | 需要直接调用API时 |
-| `html_converter.py` | Markdown→微信HTML转换 | 需要转换排版时 |
-| `image_handler.py` | 图片下载/上传/替换 | 需要处理图片时 |
-| `publish.py` | 完整发布流程（一键执行） | 最终发布时 |
+老代码中的 `from wechat_api import ...` 保持可用 —— `wechat_api.py` 现在只是 facade,把 `config.py` / `wechat_token.py` / `api.py` 的公共 API 重新导出。CLI `python3 scripts/wechat_api.py ...` 也继续工作。
 
-详细API文档见 `references/api_reference.md`。
+## 错误处理
 
-## 错误处理指南
-
-| 错误 | 原因 | 解决方法 |
-|------|------|----------|
-| `40164 IP不在白名单` | 机器IP未加白名单 | 用 `curl ifconfig.me` 获取IP，添加到公众平台白名单 |
-| `40001 access_token无效` | token过期或凭证错误 | 检查 .env 中的 AppID/AppSecret 是否正确 |
-| `40009 图片大小超限` | 图片超过10MB | 压缩图片或换一张 |
-| `48001 接口未授权` | 公众号类型不支持 | 需要认证的服务号或订阅号（已认证） |
-| 图片下载失败 | 网络问题或URL无效 | 重新搜索图片或使用其他图片源 |
-| HTML中图片不显示 | 未上传到微信CDN | 确保所有图片都通过 uploadimg 接口上传 |
+| 错误 | 原因 | 解决 |
+|---|---|---|
+| `ConfigError` | `wechat-publisher.yaml` 缺失或账号不存在 / 字段不全 | 检查文件是否存在、default 字段、app_id/app_secret |
+| `40164 IP 不在白名单` | 机器 IP 未加白名单 | `curl ifconfig.me` 取 IP → 公众平台加白名单 |
+| `40001 access_token 无效` | token 过期或凭证错 | 检查 `wechat-publisher.yaml` 的 app_id/app_secret |
+| `40009 图片大小超限` | 图片超 10MB | 压缩或换图 |
+| `48001 接口未授权` | 公众号类型不支持 | 需要已认证的服务号 / 订阅号 |
+| `ai_score.py` 返回 FAIL | AI 味太重 | 按命中清单重写段落;或 `--skip-ai-score` 临时绕过 |
 
 ## 注意事项
 
-- 文章始终发布到**草稿箱**，不会自动群发，用户可放心使用
-- 默认作者为"飞哥"，可通过 `--author` 参数自定义
-- access_token 有效期2小时，脚本自动管理刷新，无需手动操作
-- 微信API有频率限制（每日100次素材上传），不要短时间大量操作
-- 正文图片通过 uploadimg 接口上传，不占用永久素材名额
-- 如果用户没有提供封面图，使用文章第一张配图作为封面
-- 配图优先使用 baoyu-infographic skill 生成手绘风格图片，保证风格统一
+- 文章始终发布到**草稿箱**,不自动群发
+- 默认 `main` 账号(飞哥),`tech` 账号用 `--account tech` 切换
+- 两个账号的 voice 和 theme 差异是反 AI 检测策略的一部分,**不要让两个号的写作风格趋同**
+- access_token 有效期 2 小时,脚本自动管理
+- 微信 API 频率限制:每日 100 次素材上传
+- 正文图片通过 `uploadimg` 接口上传,不占永久素材名额
+- 如无封面图,使用文章第一张配图作为封面
+- 所有配图统一使用项目内置 `scripts/generate_image.py` 生成的手绘蓝色信息图(不混用实拍图)
+- **不要调用 `baoyu-post-to-wechat` skill**,一律用本 skill 的 publish.py
