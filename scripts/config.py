@@ -264,7 +264,7 @@ def get_config(account_name: Optional[str] = None) -> Dict[str, Any]:
 # 图片风格(assets/image-styles/<name>.json)
 # ============================================================
 
-DEFAULT_IMAGE_STYLE = "hand-drawn-blue"
+DEFAULT_IMAGE_STYLE = "warm-handdrawn"
 # 贴图(newspic)模式的兜底风格 —— 高密度手绘水彩信息图,对标
 # https://mp.weixin.qq.com/s/nSlGjh9hjM63jxz_jgUCwA
 DEFAULT_NEWSPIC_IMAGE_STYLE = "infographic-warm"

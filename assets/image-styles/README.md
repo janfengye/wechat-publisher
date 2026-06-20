@@ -11,17 +11,17 @@
 
 ## 两种模式,两套默认
 
-- **文章(news)模式默认**:`hand-drawn-blue`(线条手绘蓝调)
+- **文章(news)模式默认**:`warm-handdrawn`(暖手绘:粉 + 暖黄手账卡片风,干净细黑线 + 米白留白)
 - **贴图(newspic)模式默认**:`infographic-warm`(高密度手绘水彩信息图,暖黄配色)
 
-两套默认是**有意分开**的 —— 文章里的配图是一图一意的插图(密度低),贴图整篇就是 6-10 张卡,每张需要自己承载完整信息(密度高)。**不要**把文章的 `hand-drawn-blue` 拿来当贴图用,效果会像"草稿"。
+两套默认是**有意分开**的 —— 文章里的配图是一图一意的插图(密度低),贴图整篇就是 6-10 张卡,每张需要自己承载完整信息(密度高)。**不要**把文章的 `warm-handdrawn` 拿来当贴图用,效果会像"草稿"。
 
 账号可以在 `wechat-publisher.yaml` 分别配 `image_style` 和 `newspic_image_style`:
 
 ```yaml
 accounts:
   main:
-    image_style: "hand-drawn-blue"        # 文章模式
+    image_style: "warm-handdrawn"        # 文章模式
     newspic_image_style: "infographic-warm"  # 贴图模式(参考图同款)
 ```
 
@@ -35,7 +35,7 @@ accounts:
 4. 单篇要覆盖:`--image-style <name>`(CLI)或 brief.md frontmatter `image_style: <name>`
 
 **优先级**:
-- **文章**:CLI `--image-style` > frontmatter > 账号 `image_style` > `hand-drawn-blue`
+- **文章**:CLI `--image-style` > frontmatter > 账号 `image_style` > `warm-handdrawn`
 - **贴图**:CLI `--image-style` > frontmatter > 账号 `newspic_image_style` > `infographic-warm`
 
 ---
@@ -44,8 +44,10 @@ accounts:
 
 | 风格 | 视觉关键词 | 最适合的话题 | 密度 | 贴图 | 文章 |
 |---|---|---|---|---|---|
+| [`warm-handdrawn`](#warm-handdrawn) ⭐ | 细黑线 + 米白 + 粉/暖黄手账卡片 | 工具测评、功能对比、上手指南、概念科普(**文章默认**) | 中 | ✅ | ✅ 默认 |
+| [`flat-editorial`](#flat-editorial) | 黑线 + 米白 + 克制柔彩(桃/绿/黄/紫高亮) | 步骤讲解、工具/功能对比、概念拆解、调试复盘 | 中 | ✅ | ✅ |
 | [`tech-card-blue`](#tech-card-blue) | 浅蓝底 + 大字 + 极简 | 技术技巧、命令讲解、短观点 | 低 | ✅ | ✅ |
-| [`hand-drawn-blue`](#hand-drawn-blue) | 手绘线条 + 蓝点缀 | 概念解释、架构图、流程图(全能选手) | 中 | ✅ | ✅ 默认 |
+| [`hand-drawn-blue`](#hand-drawn-blue) | 手绘线条 + 蓝点缀 | 概念解释、架构图、流程图(全能选手) | 中 | ✅ | ✅ |
 | [`illustrated-warm`](#illustrated-warm) | 暖橙 + 卡通人物 + 气泡 | 体验讲解、使用指南、亲切感强的技巧 | 中 | ✅ | ✅ |
 | [`xiaohongshu-colorful`](#xiaohongshu-colorful) | 暖色渐变 + emoji + 大字 | 生活提示、上手指南、清单类 | 中 | ✅ | ✅ |
 | [`quote-card-minimal`](#quote-card-minimal) | 黑白 + 衬线 + 留白 | 金句、观点、哲思 | 低 | ✅ | ❌ |
@@ -86,6 +88,44 @@ accounts:
 
 ## 风格详细说明
 
+### warm-handdrawn
+
+干净细黑线手绘 + 米白底 + 粉/暖黄两色平涂 + 编辑式卡片排版。顶部黑色手写大标题,关键词黄荧光涂或粉色手绘下划线;圆角胶囊卡装内容,粉点 bullet、小星星点缀;小人黑发点眼黄连帽衫。**文章模式默认**,清爽亲切、留白多、文字精简。
+
+<table>
+<tr><td width="300">
+<img src="previews/warm-handdrawn.webp" alt="warm-handdrawn preview" />
+</td><td>
+
+- **主题色**:`#fdf6ec` 米白底 / `#f3a3bf` 粉 / `#fbd24e` 暖黄 / `#222` 黑线
+- **排版**:16:9 文章 / 3:4 贴图,黑色手写标题 + 卡片
+- **最适合**:工具测评、功能对比、上手指南、概念科普
+- **别用在**:纯数据报告(换 `data-chart`)、需要人物讲故事(换 `illustrated-warm`)、冷硬架构(换 `hand-drawn-blue`)
+- **跨 skill**:与 x-publisher 的 `warm-handdrawn` 同名同风格,一个名两处复用
+
+</td></tr></table>
+
+---
+
+### flat-editorial
+
+黑线 + 米白/白卡 + 克制柔彩高亮的结构化信息图。中等粗细黑色描边、实心黑发连帽衫小人、黑色数字圆圈分步;代码窗口 mock(绿=修复 / 桃=报错 / 红波浪线)、便签、文件夹、对勾、扁平小图标。比暖手绘更冷静专业,信息密度更高。
+
+<table>
+<tr><td width="300">
+<img src="previews/flat-editorial.webp" alt="flat-editorial preview" />
+</td><td>
+
+- **主题色**:`#f6f4ef` 米白底 / `#1f1f1f` 黑 / 柔彩高亮 桃`#f4a261`·绿`#a8d3a6`·黄`#fbe7a2`·紫`#d3c5ea`
+- **排版**:16:9 文章 / 3:4 贴图,粗黑标题 + 数字步骤 + 白卡
+- **最适合**:步骤讲解、工具/功能对比、概念拆解、调试/工作流复盘
+- **别用在**:纯氛围/生活(换 `warm-handdrawn` 或 `illustrated-warm`)、纯数据(换 `data-chart`)
+- **跨 skill**:与 x-publisher 的 `flat-editorial` 同名同风格,一个名两处复用
+
+</td></tr></table>
+
+---
+
 ### tech-card-blue
 
 浅蓝底 + 深蓝大字 + 极少装饰。**对标微信示例文章 [Claude Code /rewind](https://mp.weixin.qq.com/s/erEF74HRGkrBPxTGsKDsSQ)**。
@@ -109,7 +149,7 @@ accounts:
 ### hand-drawn-blue
 
 手绘速写风 + 蓝色点缀 + 白底,像工程师的笔记本。擅长画流程、架构、对比、概念示意。
-**main 号默认**,视觉一致度高,话题适配最广。
+视觉一致度高,话题适配广,冷硬技术话题(架构/协议/流程)的备选。
 
 <table>
 <tr><td width="300">
