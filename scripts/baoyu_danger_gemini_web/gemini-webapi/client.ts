@@ -333,9 +333,13 @@ export class GeminiClient extends GemMixin {
           try {
             const part_json = JSON.parse(part_body) as unknown[];
             if (get_nested_value(part_json, [4], null)) {
+              // Streaming response yields several parts containing [4]
+              // (early thinking snapshots -> final result). Keep the LAST one:
+              // generated images (candidate[12][7][0]) and final text only appear
+              // in the final part; stopping at the first yields an early snapshot
+              // with thoughts only, so text/images come back empty.
               body_index = part_index;
               body_json = part_json;
-              break;
             }
           } catch {}
         }
@@ -401,7 +405,11 @@ export class GeminiClient extends GemMixin {
           const generated_images: GeneratedImage[] = [];
           const wants_generated =
             get_nested_value(candidate, [12, 7, 0], null) != null ||
-            /http:\/\/googleusercontent\.com\/image_generation_content\/\d+/.test(text);
+            /http:\/\/googleusercontent\.com\/image_generation_content\/\d+/.test(text) ||
+            // Gemini 3 no longer emits the legacy marker in the candidate text; the generated
+            // image arrives in a later response part. Detect it from the raw response instead.
+            /\/gg-dl\//.test(txt) ||
+            /image_generation_content\/\d+/.test(txt);
 
           if (wants_generated) {
             let img_body: unknown[] | null = null;
@@ -423,13 +431,9 @@ export class GeminiClient extends GemMixin {
               } catch {}
             }
 
-            if (!img_body) {
-              throw new ImageGenerationError(
-                'Failed to parse generated images. Please update gemini_webapi to the latest version. If the error persists and is caused by the package, please report it on GitHub.',
-              );
-            }
-
-            const img_candidate = get_nested_value<unknown[]>(img_body, [4, candidate_index], []);
+            // Not every candidate carries a generated image (e.g. multi-candidate responses).
+            // If this candidate has no image part, skip extraction instead of failing the whole call.
+            const img_candidate = img_body ? get_nested_value<unknown[]>(img_body, [4, candidate_index], []) : [];
             const finished = get_nested_value<string | null>(img_candidate, [1, 0], null);
             if (finished) {
               text = finished.replace(/http:\/\/googleusercontent\.com\/image_generation_content\/\d+/g, '').trimEnd();

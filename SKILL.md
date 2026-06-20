@@ -485,16 +485,16 @@ python3 scripts/html_converter.py article.md --list-themes
 python3 scripts/html_converter.py article.md --theme refined-blue -o preview.html
 ```
 
-对比全部主题的可视化预览:打开 `assets/theme-previews/index.html`,16 套主题用同一篇文章渲染在手机宽度 frame 里并排对比。
+对比全部主题的可视化预览:打开 `assets/theme-previews/index.html`,15 套主题用同一篇文章渲染在手机宽度 frame 里并排对比。
 
-#### 主题说明(共 16 套 · v2026)
+#### 主题说明(共 15 套 · v2026)
 
 按文章气质分类挑选,不确定就用 main 默认的 `refined-blue`:
 
 | 类别 | 推荐主题 |
 |---|---|
 | **AI / 产品 / 深度分析** | `refined-blue` **(main 默认)** · `business-navy` · `sage-premium` |
-| **技术 / SDK / 工程** | `minimal-mono` **(tech 默认)** · `minimal-bw` · `academic-paper` · `cyber-neon` |
+| **技术 / SDK / 工程** | `minimal-mono` **(tech 默认)** · `minimal-bw` · `academic-paper` |
 | **新闻 / 热点 / 速读** | `news-bold` · `warm-editorial` |
 | **人文 / 随笔 / 文化** | `ink-wash` · `elegant-ink` · `magazine-grid` |
 | **生活 / 美食 / 旅行** | `warm-orange` · `mint-fresh` · `sunset-coral` |
@@ -509,7 +509,6 @@ python3 scripts/html_converter.py article.md --theme refined-blue -o preview.htm
 | `minimal-bw` | 瑞士现代主义 · Helvetica,只用粗细 / 留白做层级 | (可选) |
 | `academic-paper` | 论文格式 + 衬线正字,章节编号式层级 | (可选) |
 | `business-navy` | 深蓝 + 金色点缀,权威克制的金融感 | (可选) |
-| `cyber-neon` | 深色底 + 霓虹青紫,赛博科技感 | (可选) |
 | `news-bold` | 红黑强对比 + 快节奏,信息密度高 | (可选) |
 | `warm-editorial` | 栗色暖调,衬线杂志风 | (可选) |
 | `ink-wash` | 米黄纸 + 朱砂宋体,中式留白美学 | (可选) |

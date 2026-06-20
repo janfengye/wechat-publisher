@@ -1,6 +1,6 @@
 # Theme previews
 
-同一篇样例文章 ([`sample.md`](sample.md)) 用 16 套主题渲染出的静态 HTML,打开 [`index.html`](index.html) 可以手机宽度 frame 并排对比。
+同一篇样例文章 ([`sample.md`](sample.md)) 用 15 套主题渲染出的静态 HTML,打开 [`index.html`](index.html) 可以手机宽度 frame 并排对比。
 
 ## 文件
 
@@ -11,19 +11,19 @@
 | `screenshots/*.webp` | 主 README 用到的静态截图(总览 + 代表主题卡片) |
 | `refined-blue.html` | main 账号默认主题预览 |
 | `minimal-mono.html` | tech 账号默认主题预览 |
-| `<theme>.html`(× 14) | 14 套可选主题预览,与 `../themes/*.json` 一一对应 |
+| `<theme>.html`(× 13) | 13 套可选主题预览,与 `../themes/*.json` 一一对应 |
 
 ## 主题定义
 
-在 [`../themes/*.json`](../themes/),共 16 套:`academic-paper` · `business-navy` · `cyber-neon` · `elegant-ink` · `girly-pink` · `ink-wash` · `magazine-grid` · `minimal-bw` · `minimal-mono` · `mint-fresh` · `news-bold` · `refined-blue` · `sage-premium` · `sunset-coral` · `warm-editorial` · `warm-orange`。
+在 [`../themes/*.json`](../themes/),共 15 套:`academic-paper` · `business-navy` · `elegant-ink` · `girly-pink` · `ink-wash` · `magazine-grid` · `minimal-bw` · `minimal-mono` · `mint-fresh` · `news-bold` · `refined-blue` · `sage-premium` · `sunset-coral` · `warm-editorial` · `warm-orange`。
 
 ## 改了主题后重新生成全部预览
 
 ```bash
 cd wechat-publisher
-for theme in academic-paper business-navy cyber-neon elegant-ink girly-pink \
-             ink-wash magazine-grid minimal-bw minimal-mono mint-fresh \
-             news-bold refined-blue sage-premium sunset-coral warm-editorial \
+for theme in academic-paper business-navy elegant-ink girly-pink ink-wash \
+             magazine-grid minimal-bw minimal-mono mint-fresh news-bold \
+             refined-blue sage-premium sunset-coral warm-editorial \
              warm-orange; do
   python3 scripts/html_converter.py assets/theme-previews/sample.md \
     --theme "$theme" \

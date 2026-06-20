@@ -336,7 +336,7 @@ def extract_images_from_html(html_content):
 # 完整图片处理流程
 # ============================================================
 
-def process_article_images(md_content, temp_dir=None):
+def process_article_images(md_content, temp_dir=None, base_dir=None):
     """
     完整的文章图片处理流程：
     1. 提取Markdown中的所有图片引用
@@ -351,6 +351,8 @@ def process_article_images(md_content, temp_dir=None):
         md_content: Markdown文章内容
         temp_dir: 临时图片目录(同时用于存放 .uploaded_manifest.json)。
                   None(默认)时自动创建 mkdtemp 隔离目录，避免并发冲突。
+        base_dir: 解析相对图片路径的基准目录(通常是 article.md 所在目录)。
+                  None 时相对路径按进程 cwd 解析(旧行为)。
 
     Returns:
         tuple: (处理后的Markdown, 图片映射字典, 第一张图片的本地路径)
@@ -381,10 +383,14 @@ def process_article_images(md_content, temp_dir=None):
         local_path = None
         if url.startswith(("http://", "https://")):
             local_path = download_image(url, temp_dir, filename=f"article_{i}.jpg")
-        elif Path(url).exists():
-            local_path = url
         else:
-            print(f"  跳过无效路径：{url}")
+            p = Path(url)
+            if not p.is_absolute() and base_dir is not None and not p.exists():
+                p = Path(base_dir) / p
+            if p.exists():
+                local_path = str(p)
+            else:
+                print(f"  跳过无效路径：{url}")
 
         resolved.append((url, local_path))
 

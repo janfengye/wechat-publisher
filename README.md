@@ -28,7 +28,7 @@ pip install requests pyyaml
 - **全网素材搜索**:围绕话题自动多轮搜索,交叉验证数据,筛选最新案例和权威观点
 - **AI智能写作**:按照头部博主风格生成3000-5000字深度文章,支持多种文章结构随机/按题材选择,反AI味写作规则,段落短小有呼吸感
 - **AI配图生成**:通过项目内置 `scripts/generate_image.py` 为每个章节生成风格统一的手绘信息图(6-10张/篇),默认走 `baoyu-image-gen`,也可切到 Web 登录版 Gemini
-- **微信排版转换**:Markdown → 微信兼容 HTML,所有样式自动内联,内置 **16 套主题(v2026)**,覆盖 AI/技术/商业/新闻/人文/生活/时尚 7 大场景,见下方[排版主题](#排版主题)章节
+- **微信排版转换**:Markdown → 微信兼容 HTML,所有样式自动内联,内置 **15 套主题(v2026)**,覆盖 AI/技术/商业/新闻/人文/生活/时尚 7 大场景,见下方[排版主题](#排版主题)章节
 - **图片CDN上传**:自动上传图片到微信服务器,获取 `mmbiz.qpic.cn` 链接并替换占位符
 - **一键发布草稿**:封面图、标题、摘要、作者全部自动填好,直达草稿箱
 - **反 AI 检测 gate**:`ai_score.py` 按 burstiness / 套话 / 词汇 / 结构 / 标点 5 维打分,publish.py 发布前自动拦截高分稿
@@ -49,14 +49,14 @@ wechat-publisher/
 │   ├── config.py               # wechat-publisher.yaml 加载 + ConfigError
 │   ├── wechat_token.py         # access_token 获取与本地缓存
 │   ├── api.py                  # 图片上传 / 草稿创建 / 发布
-│   ├── html_converter.py       # Markdown → 微信 HTML(16 套主题 + 行内标色 + list_style)
+│   ├── html_converter.py       # Markdown → 微信 HTML(15 套主题 + 行内标色 + list_style)
 │   ├── image_handler.py        # 图片下载 / 上传 / 替换
 │   ├── ai_score.py             # 反 AI 检测自检(publish.py 自动调用)
 │   ├── newspic_build.py        # 贴图(图片消息)模式:brief.md → card_plan.json
 │   └── multi_publish.py        # 可选:同步到知乎/掘金/CSDN(基于 @wechatsync/cli)
 ├── assets/
-│   ├── themes/                 # 排版主题(16 套 .json)
-│   ├── theme-previews/         # 16 套主题的 HTML 预览(index.html 并排对比)
+│   ├── themes/                 # 排版主题(15 套 .json)
+│   ├── theme-previews/         # 15 套主题的 HTML 预览(index.html 并排对比)
 │   └── image-styles/           # 9 套配图风格(.json + previews/*.webp)
 ├── references/
 │   └── api_reference.md        # 微信公众平台 API 参考(节选)
@@ -291,15 +291,15 @@ python3 scripts/ai_score.py article.md --threshold 45
 
 ## 排版主题
 
-内置 **16 套主题(v2026)**,位于 `assets/themes/*.json`。所有主题都遵守:正文 ~15.5px、行高 ~1.85、纯 inline style、无外部依赖,粘贴进公众号编辑器不丢样式。
+内置 **15 套主题(v2026)**,位于 `assets/themes/*.json`。所有主题都遵守:正文 ~15.5px、行高 ~1.85、纯 inline style、无外部依赖,粘贴进公众号编辑器不丢样式。
 
-> **想直观看效果?** 打开 [`assets/theme-previews/index.html`](assets/theme-previews/index.html),16 套主题用同一篇文章渲染在手机宽度 frame 里并排对比,带分类筛选和色板预览。
+> **想直观看效果?** 打开 [`assets/theme-previews/index.html`](assets/theme-previews/index.html),15 套主题用同一篇文章渲染在手机宽度 frame 里并排对比,带分类筛选和色板预览。
 
 ### 主题截图
 
 下面这组图直接来自 `assets/theme-previews/index.html` 的静态截图,和 HTML 预览使用同一篇样例文章,方便在 GitHub 里快速比对主题观感。
 
-![16 套公众号主题总览](assets/theme-previews/screenshots/theme-overview.webp)
+![15 套公众号主题总览](assets/theme-previews/screenshots/theme-overview.webp)
 
 <table>
 <tr>
@@ -333,7 +333,7 @@ python3 scripts/ai_score.py article.md --threshold 45
 | 类别 | 推荐主题 | 视觉关键词 |
 |---|---|---|
 | **AI / 产品 / 深度分析** | `refined-blue` **(main 默认)** · `business-navy` · `sage-premium` | 蓝调 / 深蓝金 / 鼠尾草绿 |
-| **技术 / SDK / 工程** | `minimal-mono` **(tech 默认)** · `minimal-bw` · `academic-paper` · `cyber-neon` | 等宽 / 黑白 / 论文衬线 / 赛博霓虹 |
+| **技术 / SDK / 工程** | `minimal-mono` **(tech 默认)** · `minimal-bw` · `academic-paper` | 等宽 / 黑白 / 论文衬线 |
 | **新闻 / 热点 / 速读** | `news-bold` · `warm-editorial` | 红黑强对比 / 栗色暖调 |
 | **人文 / 随笔 / 文化** | `ink-wash` · `elegant-ink` · `magazine-grid` | 米黄朱砂 / 墨黑朱砂 / 杂志衬线 |
 | **生活 / 美食 / 旅行** | `warm-orange` · `mint-fresh` · `sunset-coral` | 暖橙 / 薄荷 / 珊瑚 |

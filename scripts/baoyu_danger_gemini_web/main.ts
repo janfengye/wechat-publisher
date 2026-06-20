@@ -437,9 +437,17 @@ async function main(): Promise<void> {
 
     const files = args.referenceImages.length > 0 ? args.referenceImages : null;
 
-    let out: ModelOutput;
-    if (chat) out = await chat.send_message(prompt, files);
-    else out = await c.generate_content(prompt, files, model);
+    // Thinking models (e.g. gemini-3-pro) occasionally return no image even when
+    // asked to generate one. Mirror baoyu_image_gen.ts and retry up to 2 attempts.
+    // Only retry single-shot image generation; multi-turn chat must not be replayed.
+    const maxAttempts = args.imagePath && !args.sessionId ? 2 : 1;
+    let out: ModelOutput | null = null;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      out = chat ? await chat.send_message(prompt, files) : await c.generate_content(prompt, files, model);
+      if (!args.imagePath || out.images[0]) break;
+      if (attempt < maxAttempts) console.error(`No image returned, retrying... (attempt ${attempt}/${maxAttempts})`);
+    }
+    if (!out) throw new Error('Generation produced no output.');
 
     let savedImage: string | null = null;
     if (args.imagePath) {

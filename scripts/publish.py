@@ -38,7 +38,7 @@ from wechat_api import (
     list_image_styles,
 )
 from html_converter import convert_markdown_to_wechat_html, load_styles, load_theme
-from image_handler import process_article_images
+from image_handler import process_article_images, extract_images_from_markdown
 
 
 # ============================================================
@@ -178,6 +178,7 @@ def publish_from_markdown(
     account_name: Optional[str] = None,
     ai_score_threshold: float = None,  # None → use ai_score.DEFAULT_THRESHOLD
     skip_ai_score: bool = False,
+    allow_missing_images: bool = False,
     debug: bool = False,
 ):
     """
@@ -206,6 +207,7 @@ def publish_from_markdown(
         account_name: 若指定,则在函数内部调用 set_account() 切换账号
         ai_score_threshold: AI 味检测阈值,总分 >= 阈值视为不通过(默认 45)
         skip_ai_score: True 时跳过 AI 味检测(默认 False)
+        allow_missing_images: True 时允许部分图片上传失败仍继续发布(默认 False,缺图即中止)
         debug: True 时把生成的 HTML 保存到 temp_dir 下方便调试
 
     Returns:
@@ -292,7 +294,25 @@ def publish_from_markdown(
     print("\n[步骤2] 处理文章图片...")
     # 移除标题后处理（标题不包含在正文中）
     content_md = remove_title_from_content(md_content)
-    processed_md, img_mapping, first_img = process_article_images(content_md, temp_dir)
+    processed_md, img_mapping, first_img = process_article_images(
+        content_md, temp_dir, base_dir=md_path.parent
+    )
+
+    # 缺图守卫：引用了但未成功上传的图片,默认中止发布,避免产出缺图草稿
+    referenced = {img["url"] for img in extract_images_from_markdown(content_md)}
+    missing = sorted(u for u in referenced if u not in img_mapping)
+    if missing:
+        print(f"\n  错误：{len(missing)} 张图片引用未能上传：")
+        for u in missing:
+            print(f"    · {u}")
+        if allow_missing_images:
+            print("  --allow-missing-images 已指定,继续发布(草稿将缺图)。")
+        else:
+            print(
+                "  发布已中止。请检查图片路径(相对路径按 article.md 所在目录解析),\n"
+                "  或显式传 --allow-missing-images 接受缺图草稿。"
+            )
+            raise SystemExit(1)
 
     # 6. 转换HTML
     print("\n[步骤3] 转换HTML排版...")
@@ -670,6 +690,11 @@ def _build_parser() -> argparse.ArgumentParser:
         help="跳过 AI 味检测(不推荐,仅在已经人工改写过时使用)",
     )
     parser.add_argument(
+        "--allow-missing-images",
+        action="store_true",
+        help="允许部分图片上传失败仍继续发布(默认缺图即中止,避免产出缺图草稿)",
+    )
+    parser.add_argument(
         "--debug",
         action="store_true",
         help="调试模式:把生成的 HTML 保存到 temp_dir 方便排查",
@@ -782,6 +807,7 @@ def main():
             sync_platforms=sync_platforms,
             ai_score_threshold=args.ai_score_threshold,
             skip_ai_score=args.skip_ai_score,
+            allow_missing_images=args.allow_missing_images,
             debug=args.debug,
         )
     else:
