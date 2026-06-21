@@ -46,6 +46,9 @@ accounts:
 |---|---|---|---|---|---|
 | [`warm-handdrawn`](#warm-handdrawn) ⭐ | 细黑线 + 米白 + 粉/暖黄手账卡片 | 工具测评、功能对比、上手指南、概念科普(**文章默认**) | 中 | ✅ | ✅ 默认 |
 | [`flat-editorial`](#flat-editorial) | 黑线 + 米白 + 克制柔彩(桃/绿/黄/紫高亮) | 步骤讲解、工具/功能对比、概念拆解、调试复盘 | 中 | ✅ | ✅ |
+| [`morandi`](#morandi) | 细黑线 + 莫兰迪灰调(手账手写) | 人文、随笔、深度评论、有质感的内容 | 中 | ✅ | ✅ |
+| [`mint`](#mint) | 细黑线 + 薄荷绿/天蓝(清爽冷调,手账) | 生产力、工具、效率、清单 | 中 | ✅ | ✅ |
+| [`blue`](#blue) | 细黑线 + 蓝调 + 橙点缀(冷静偏技术,手账) | 技术、架构、协议、SDK、评测 | 中 | ✅ | ✅ |
 | [`tech-card-blue`](#tech-card-blue) | 浅蓝底 + 大字 + 极简 | 技术技巧、命令讲解、短观点 | 低 | ✅ | ✅ |
 | [`hand-drawn-blue`](#hand-drawn-blue) | 手绘线条 + 蓝点缀 | 概念解释、架构图、流程图(全能选手) | 中 | ✅ | ✅ |
 | [`illustrated-warm`](#illustrated-warm) | 暖橙 + 卡通人物 + 气泡 | 体验讲解、使用指南、亲切感强的技巧 | 中 | ✅ | ✅ |
@@ -109,7 +112,7 @@ accounts:
 
 ### flat-editorial
 
-黑线 + 米白/白卡 + 克制柔彩高亮的结构化信息图。中等粗细黑色描边、实心黑发连帽衫小人、黑色数字圆圈分步;代码窗口 mock(绿=修复 / 桃=报错 / 红波浪线)、便签、文件夹、对勾、扁平小图标。比暖手绘更冷静专业,信息密度更高。
+细黑线手绘 + 手写体标题 + 米白/白卡 + 克制柔彩高亮的手账式结构信息图。细而利落的黑线、实心黑发连帽衫小人、黑色数字圆圈分步;代码窗口 mock(绿=修复 / 桃=报错 / 红波浪线)、便签、文件夹、对勾、扁平小图标。和暖手绘一样走手账+手写,但配色是黑+米白为主、柔彩多色只做语义高亮,信息密度更高。
 
 <table>
 <tr><td width="300">
@@ -121,6 +124,59 @@ accounts:
 - **最适合**:步骤讲解、工具/功能对比、概念拆解、调试/工作流复盘
 - **别用在**:纯氛围/生活(换 `warm-handdrawn` 或 `illustrated-warm`)、纯数据(换 `data-chart`)
 - **跨 skill**:与 x-publisher 的 `flat-editorial` 同名同风格,一个名两处复用
+
+</td></tr></table>
+
+---
+
+> 下面 `morandi` / `mint` / `blue` 与 `warm-handdrawn` / `flat-editorial` 是**同一套手绘 + 手写体 + 细黑线 + 手账** treatment,只换配色。按话题情绪选:技术→`blue`/`flat-editorial`,轻松→`warm-handdrawn`/`mint`,人文→`morandi`。
+
+### morandi
+
+细黑线手绘 + 手写体标题 + 莫兰迪低饱和配色(灰绿/脏粉/灰蓝/陶土)。高级、克制、安静,适合人文、随笔、深度评论。
+
+<table>
+<tr><td width="300">
+<img src="previews/morandi.webp" alt="morandi preview" />
+</td><td>
+
+- **主题色**:`#f4f1ea` 米白底 / 莫兰迪 灰绿`#9caf9a`·脏粉`#c8a9a6`·灰蓝`#9aa8b5`·陶土`#bb9c8a` / `#2a2a2a` 黑线
+- **最适合**:人文、随笔、文化、有质感的深度内容
+- **跨 skill**:与 x-publisher 的 `morandi` 同名同风格
+
+</td></tr></table>
+
+---
+
+### mint
+
+细黑线手绘 + 手写体标题 + 薄荷绿/天蓝清爽冷调 + 大留白。干净、利落、有呼吸感,适合生产力、工具、效率、清单。
+
+<table>
+<tr><td width="300">
+<img src="previews/mint.webp" alt="mint preview" />
+</td><td>
+
+- **主题色**:`#f5faf8` 米白底 / 薄荷`#9fdcc8`·天蓝`#a8d3ea`·青绿`#7fc4be` + 小桃点`#f4b89a` / `#222` 黑线
+- **最适合**:生产力、工具、效率方法、清单、上手指南
+- **跨 skill**:与 x-publisher 的 `mint` 同名同风格
+
+</td></tr></table>
+
+---
+
+### blue
+
+细黑线手绘 + 手写体标题 + 蓝调(蓝+浅蓝+橙点缀)。冷静、偏工程,适合技术、架构、协议、SDK、评测(走手账手写,替代旧的印刷感 `tech-card-blue` 在'技术冷静'场景的定位)。
+
+<table>
+<tr><td width="300">
+<img src="previews/blue.webp" alt="blue preview" />
+</td><td>
+
+- **主题色**:`#f4f7fb` 米白底 / 蓝`#4a6cf7`·浅蓝`#a9c2f5` + 小橙点`#ff8c42` / `#222` 黑线
+- **最适合**:技术、架构、协议、SDK 拆解、模型评测
+- **跨 skill**:与 x-publisher 的 `blue` 同名同风格
 
 </td></tr></table>
 
