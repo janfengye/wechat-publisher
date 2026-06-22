@@ -41,9 +41,9 @@ image_generation:
 
   # baoyu-image-gen / provider=gemini-proxy
   gemini_proxy:
-    base_url: "https://website-data-analysis.replit.app"
-    api_key: "cr_..."
-    image_model: "gemini-3-pro-image-preview"
+    base_url: "https://generativelanguage.googleapis.com"
+    api_key: "AIza..."
+    image_model: "gemini-2.5-flash"
 
   # baoyu-danger-gemini-web
   gemini_web:

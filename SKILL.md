@@ -75,8 +75,8 @@ accounts:
 image_generation:
   generator: "baoyu-image-gen"
   gemini_proxy:
-    base_url: "https://website-data-analysis.replit.app"
-    api_key: "cr_..."
+    base_url: "https://generativelanguage.googleapis.com"
+    api_key: "AIza..."
     image_model: "gemini-3-pro-image-preview"
 
 integrations:
@@ -142,7 +142,7 @@ pip install requests pyyaml --break-system-packages 2>/dev/null || pip install r
 
 3. **选择文章结构**:写作前先确定 `article_structure` 和 `opening_hook`。用户指定则照做;未指定时先按题材匹配,有多个候选就随机选一个;批量写多篇时避免连续两篇使用同一结构。
 
-4. **产出**:写入 `/Users/crimson/codes/0.docs/mp-articles/<main|tech>/<YYYY-MM-DD>-<slug>/brief.md`,包含话题、目标账号、3-5 个关键词、用户提供的真实细节清单、`article_structure`、`opening_hook`。
+4. **产出**:写入 `mp-articles/<main|tech>/<YYYY-MM-DD>-<slug>/brief.md`,包含话题、目标账号、3-5 个关键词、用户提供的真实细节清单、`article_structure`、`opening_hook`。
 
 ---
 
@@ -163,7 +163,7 @@ pip install requests pyyaml --break-system-packages 2>/dev/null || pip install r
 
 3. **信息筛选与交叉验证**:关键数据多源交叉,具体到数字 / 名字 / 时间 / 产品版本号。
 
-4. **产出**:`/Users/crimson/codes/0.docs/mp-articles/<main|tech>/<slug>/research.md`,每个素材标来源,区分"权威层"和"真人层"。
+4. **产出**:`mp-articles/<main|tech>/<slug>/research.md`,每个素材标来源,区分"权威层"和"真人层"。
 
 ---
 
@@ -567,7 +567,7 @@ python3 scripts/publish.py ... --skip-ai-score
 写作时还是推荐显式跑一次 `ai_score.py` 看细节报告:
 
 ```bash
-python3 scripts/ai_score.py /Users/crimson/codes/0.docs/mp-articles/<main|tech>/<slug>/article.md --threshold 45
+python3 scripts/ai_score.py mp-articles/<main|tech>/<slug>/article.md --threshold 45
 ```
 
 输出示例:
@@ -614,8 +614,8 @@ python3 scripts/ai_score.py /Users/crimson/codes/0.docs/mp-articles/<main|tech>/
 ```bash
 python3 scripts/publish.py \
   --account <main|tech> \
-  --input /Users/crimson/codes/0.docs/mp-articles/<main|tech>/<slug>/article.md \
-  --cover /Users/crimson/codes/0.docs/mp-articles/<main|tech>/<slug>/cover.jpg \
+  --input mp-articles/<main|tech>/<slug>/article.md \
+  --cover mp-articles/<main|tech>/<slug>/cover.jpg \
   --title "文章标题" \
   --digest "120 字以内摘要"
 ```
@@ -671,8 +671,8 @@ python3 scripts/publish.py --account tech --html article.html --cover cover.jpg 
 **方式 A:命令行显式指定平台(最常用)**
 ```bash
 python3 scripts/publish.py --account main \
-  --input /Users/crimson/codes/0.docs/mp-articles/main/<slug>/article.md \
-  --cover /Users/crimson/codes/0.docs/mp-articles/main/<slug>/cover.jpg \
+  --input mp-articles/main/<slug>/article.md \
+  --cover mp-articles/main/<slug>/cover.jpg \
   --sync zhihu,juejin,csdn
 ```
 
@@ -701,7 +701,7 @@ python3 scripts/multi_publish.py --input x.md --platforms zhihu,juejin
 因此同步走的是**原始 markdown**(`article.md`),不是已处理过的版本。
 
 - 外部 URL 图片(HTTPS):wechatsync 自动转存到各平台,通常没问题
-- 本地路径图片(比如 `/Users/crimson/codes/0.docs/mp-articles/main/<slug>/images/fig1.png`):wechatsync 的文档未明确是否支持
+- 本地路径图片(比如 `mp-articles/main/<slug>/images/fig1.png`):wechatsync 的文档未明确是否支持
   - `multi_publish.py` 会扫出并提示有多少张本地图
   - 如果目标平台发现图加载不出来,需要把本地图先传到公开图床(或任何无防盗链的 CDN)、改成 URL 后再跑同步
 
@@ -847,7 +847,7 @@ python3 scripts/publish.py --account main --type newspic --brief brief.md --imag
 
 **图文(news)布局**:
 ```
-/Users/crimson/codes/0.docs/mp-articles/<main|tech>/<YYYY-MM-DD>-<slug>/
+mp-articles/<main|tech>/<YYYY-MM-DD>-<slug>/
   ├── brief.md            # 阶段一的需求摘要
   ├── research.md         # 阶段二的搜索素材
   ├── article.md          # 阶段三/3.5 的文章(最终发布源)
@@ -859,7 +859,7 @@ python3 scripts/publish.py --account main --type newspic --brief brief.md --imag
 
 **贴图(newspic)布局**:
 ```
-/Users/crimson/codes/0.docs/mp-articles/<main|tech>/<YYYY-MM-DD>-<slug>/
+mp-articles/<main|tech>/<YYYY-MM-DD>-<slug>/
   ├── brief.md            # 话题 + 要点 + 短文本(发布源)
   ├── card_plan.json      # newspic_build.py 产出的每张卡的 prompt + 目标文件名
   └── images/
@@ -872,10 +872,10 @@ python3 scripts/publish.py --account main --type newspic --brief brief.md --imag
 - `<YYYY-MM-DD>-<slug>` 格式:日期 + 短横线 + 语义化 slug(纯小写英文短横线分隔)
 - 各阶段的命令和路径都要相应调整,例如:
   ```bash
-  python3 scripts/ai_score.py /Users/crimson/codes/0.docs/mp-articles/main/<slug>/article.md --threshold 45
+  python3 scripts/ai_score.py mp-articles/main/<slug>/article.md --threshold 45
   python3 scripts/publish.py --account main \
-    --input /Users/crimson/codes/0.docs/mp-articles/main/<slug>/article.md \
-    --cover /Users/crimson/codes/0.docs/mp-articles/main/<slug>/cover.jpg \
+    --input mp-articles/main/<slug>/article.md \
+    --cover mp-articles/main/<slug>/cover.jpg \
     --title "..."
   ```
 
