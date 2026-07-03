@@ -9,6 +9,72 @@
 
 ---
 
+## 🖼️ 风格画廊(19 种内置风格)
+
+> 全部预览图都用同一主题「Claude Code /rewind」渲染,方便横向对比。点缩略图可跳到对应「详细说明」。按视觉家族分组:
+
+### ✏️ 手绘手账系 · 细黑线 + 手写体(6)
+
+<table>
+<tr>
+<td align="center" valign="top" width="33%"><a href="#warm-handdrawn"><img src="previews/warm-handdrawn.webp" width="230" alt="warm-handdrawn"/></a><br/><b><code>warm-handdrawn</code></b> ⭐<br/><sub>细黑线 + 米白 + 粉/暖黄手账(文章默认)</sub></td>
+<td align="center" valign="top" width="33%"><a href="#flat-editorial"><img src="previews/flat-editorial.webp" width="230" alt="flat-editorial"/></a><br/><b><code>flat-editorial</code></b><br/><sub>黑线 + 米白 + 克制柔彩高亮</sub></td>
+<td align="center" valign="top" width="33%"><a href="#morandi"><img src="previews/morandi.webp" width="230" alt="morandi"/></a><br/><b><code>morandi</code></b><br/><sub>细黑线 + 莫兰迪低饱和灰调</sub></td>
+</tr>
+<tr>
+<td align="center" valign="top" width="33%"><a href="#mint"><img src="previews/mint.webp" width="230" alt="mint"/></a><br/><b><code>mint</code></b><br/><sub>细黑线 + 薄荷绿/天蓝清爽</sub></td>
+<td align="center" valign="top" width="33%"><a href="#blue"><img src="previews/blue.webp" width="230" alt="blue"/></a><br/><b><code>blue</code></b><br/><sub>细黑线 + 蓝调 + 橙点缀(偏技术)</sub></td>
+<td align="center" valign="top" width="33%"><a href="#hand-drawn-blue"><img src="previews/hand-drawn-blue.webp" width="230" alt="hand-drawn-blue"/></a><br/><b><code>hand-drawn-blue</code></b><br/><sub>手绘速写 + 蓝点缀(全能)</sub></td>
+</tr>
+</table>
+
+### 💬 叙事漫画系 · 人物 + 对话气泡(3)
+
+<table>
+<tr>
+<td align="center" valign="top" width="33%"><a href="#illustrated-warm"><img src="previews/illustrated-warm.webp" width="230" alt="illustrated-warm"/></a><br/><b><code>illustrated-warm</code></b><br/><sub>暖橙渐变 + 卡通人物 + 气泡</sub></td>
+<td align="center" valign="top" width="33%"><a href="#meme-illustration"><img src="previews/meme-illustration.webp" width="230" alt="meme-illustration"/></a><br/><b><code>meme-illustration</code></b><br/><sub>黄底 + 卡通 + 夸张梗图</sub></td>
+<td align="center" valign="top" width="33%"><a href="#slice-of-life"><img src="previews/slice-of-life.webp" width="230" alt="slice-of-life"/></a><br/><b><code>slice-of-life</code></b> 🆕<br/><sub>细墨线 + 中性淡彩 + 单点红(治愈生活)</sub></td>
+</tr>
+</table>
+
+### 🗂️ 卡片排版系 · 大字 + 结构(5)
+
+<table>
+<tr>
+<td align="center" valign="top" width="33%"><a href="#tech-card-blue"><img src="previews/tech-card-blue.webp" width="230" alt="tech-card-blue"/></a><br/><b><code>tech-card-blue</code></b><br/><sub>浅蓝底 + 深蓝大字 + 极简</sub></td>
+<td align="center" valign="top" width="33%"><a href="#knowledge-card"><img src="previews/knowledge-card.webp" width="230" alt="knowledge-card"/></a><br/><b><code>knowledge-card</code></b><br/><sub>白底 + 编号徽章 + 结构化</sub></td>
+<td align="center" valign="top" width="33%"><a href="#magazine-editorial"><img src="previews/magazine-editorial.webp" width="230" alt="magazine-editorial"/></a><br/><b><code>magazine-editorial</code></b><br/><sub>米色 + 衬线大标题 + 栏位感</sub></td>
+</tr>
+<tr>
+<td align="center" valign="top" width="33%"><a href="#quote-card-minimal"><img src="previews/quote-card-minimal.webp" width="230" alt="quote-card-minimal"/></a><br/><b><code>quote-card-minimal</code></b><br/><sub>黑白 + 衬线 + 极致留白(仅贴图)</sub></td>
+<td align="center" valign="top" width="33%"><a href="#xiaohongshu-colorful"><img src="previews/xiaohongshu-colorful.webp" width="230" alt="xiaohongshu-colorful"/></a><br/><b><code>xiaohongshu-colorful</code></b><br/><sub>暖色渐变 + emoji + 大字</sub></td>
+<td align="center" valign="top" width="33%"></td>
+</tr>
+</table>
+
+### 📈 数据系(1)
+
+<table>
+<tr>
+<td align="center" valign="top" width="33%"><a href="#data-chart"><img src="previews/data-chart.webp" width="230" alt="data-chart"/></a><br/><b><code>data-chart</code></b><br/><sub>白底 + 图表 + 等宽数字(需真实数据)</sub></td>
+<td width="33%"></td><td width="33%"></td>
+</tr>
+</table>
+
+### 📊 高密度信息图系 · 手绘水彩 · 9:16 长图(4)
+
+<table>
+<tr>
+<td align="center" valign="top" width="25%"><a href="#infographic-warm"><img src="previews/infographic-warm.webp" width="180" alt="infographic-warm"/></a><br/><b><code>infographic-warm</code></b> ⭐<br/><sub>暖黄手绘水彩(贴图默认)</sub></td>
+<td align="center" valign="top" width="25%"><a href="#infographic-blue"><img src="previews/infographic-blue.webp" width="180" alt="infographic-blue"/></a><br/><b><code>infographic-blue</code></b> 🔥<br/><sub>冷蓝手绘水彩(SDK/协议)</sub></td>
+<td align="center" valign="top" width="25%"><a href="#infographic-dark"><img src="previews/infographic-dark.webp" width="180" alt="infographic-dark"/></a><br/><b><code>infographic-dark</code></b> 🔥<br/><sub>深色手绘水彩(前沿/赛博)</sub></td>
+<td align="center" valign="top" width="25%"><a href="#infographic-mint"><img src="previews/infographic-mint.webp" width="180" alt="infographic-mint"/></a><br/><b><code>infographic-mint</code></b> 🔥<br/><sub>薄荷手绘水彩(生产力)</sub></td>
+</tr>
+</table>
+
+---
+
 ## 两种模式,两套默认
 
 - **文章(news)模式默认**:`warm-handdrawn`(暖手绘:粉 + 暖黄手账卡片风,干净细黑线 + 米白留白)
@@ -58,6 +124,7 @@ accounts:
 | [`knowledge-card`](#knowledge-card) | 白底 + 编号 + 结构化 | 教程、方法论、清单、复习卡 | 中 | ✅ | ✅ |
 | [`data-chart`](#data-chart) | 白底 + 图表 + 数字 | 数据观察、行业报告、对比 | 中 | ✅ | ✅ |
 | [`meme-illustration`](#meme-illustration) | 黄底 + 卡通 + 对话气泡 | 吐槽、段子、行业梗 | 低 | ✅ | ✅ |
+| [`slice-of-life`](#slice-of-life) | 细墨线 + 中性淡彩 + 单点红(治愈系生活手绘) | 生活观察、打工人共鸣、段子、轻科普 | 低 | ✅ | ✅ |
 | [`infographic-warm`](#infographic-warm) ⭐ | 暖色手绘 + 高密度信息图 | **贴图默认,通用话题** | **高** | ✅ | ✅ |
 | [`infographic-blue`](#infographic-blue) 🔥 | 冷蓝手绘 + 高密度信息图 | **SDK/协议/产品拆解** | **高** | ✅ | ✅ |
 | [`infographic-dark`](#infographic-dark) 🔥 | 深色手绘 + 高密度信息图 | **前沿模型、基建、赛博** | **高** | ✅ | ✅ |
@@ -362,9 +429,29 @@ accounts:
 
 ---
 
-### infographic-warm ⭐(贴图默认)
+### slice-of-life
 
-暖色手绘水彩 + 高密度中文信息图。适合做贴图默认视觉,但不固定角色、区块和装饰元素。
+细钢笔线描 + 低饱和淡彩平涂 + 大量纸白留白,全图仅一处砖红点睛。顶部手写体旁白直译笑点,下方手绘场景配对话气泡和情绪小符号(说话放射线 / 速度线)。治愈系生活手绘,温、克制、带冷幽默。和 `meme-illustration`(黄底粗描边夸张)、`illustrated-warm`(暖橙渐变)是三条不同的路:本风格中性留白、细墨线、克制淡彩。
+
+<table>
+<tr><td width="300">
+<img src="previews/slice-of-life.webp" alt="slice-of-life preview" />
+</td><td>
+
+- **主题色**:`#fcfbf7` 纸白底 / `#2b2b2b` 软黑墨线 / 蓝灰`#b9c9ce`·米黄`#efe3bf`·中灰`#8a8d90`·炭灰`#3a3d42` / 砖红`#b83a2e`(全图唯一暖红,极小面积)
+- **排版**:3:4 贴图 / 4:3 文章,顶部手写旁白 + 下方手绘场景 + 对话气泡
+- **最适合**:生活观察、打工人共鸣、段子文案、亲切轻科普
+- **别用在**:纯数据(换 `data-chart`)、冷硬架构(换 `hand-drawn-blue`)、高密度信息贴图(换 infographic 系列)
+- **三条铁律**:①全图只留一处砖红,多加就俗;②线要细、要有手抖感,画太干净丢治愈感;③背景纯白留白,不铺底色
+- **⚠️ 字体一致**:模型渲染小号中文会飘,要真·一致走"无字插画 + 后期叠字"(旁白站酷快乐体 / 招牌思源黑体)
+
+</td></tr></table>
+
+---
+
+### infographic-warm
+
+⭐ **贴图模式默认**。暖色手绘水彩 + 高密度中文信息图。适合做贴图默认视觉,但不固定角色、区块和装饰元素。
 
 <table>
 <tr><td width="300">
@@ -382,9 +469,9 @@ accounts:
 
 ---
 
-### infographic-blue 🔥
+### infographic-blue
 
-和 warm 同一手绘水彩语言,但换冷蓝基底 + 橙色强调,工程师气质。
+🔥 和 warm 同一手绘水彩语言,但换冷蓝基底 + 橙色强调,工程师气质。
 
 <table>
 <tr><td width="300">
@@ -401,9 +488,9 @@ accounts:
 
 ---
 
-### infographic-dark 🔥
+### infographic-dark
 
-同视觉语言的深色变体。深靛蓝夜空底 + 霓虹青黄手绘,像夜间实验室档案。
+🔥 同视觉语言的深色变体。深靛蓝夜空底 + 霓虹青黄手绘,像夜间实验室档案。
 
 <table>
 <tr><td width="300">
@@ -420,9 +507,9 @@ accounts:
 
 ---
 
-### infographic-mint 🔥
+### infographic-mint
 
-同视觉语言的清新变体。米白底 + 薄荷绿 + 珊瑚橙,友好感强。
+🔥 同视觉语言的清新变体。米白底 + 薄荷绿 + 珊瑚橙,友好感强。
 
 <table>
 <tr><td width="300">
